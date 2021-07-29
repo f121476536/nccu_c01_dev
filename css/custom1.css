@@ -1,0 +1,186 @@
+/*推薦頁面*/
+.rc_pic{
+/*  水平至中*/
+  display:block;
+  margin:auto;
+  width: 5vw;
+  height: 15vh;
+  box-shadow:0 1px 3px 0 #d4d4d5, 0 0 0 1px #d4d4d5;
+}
+
+.gridmax-grid-post-categories {
+    margin-bottom: 8px;
+    position: relative;
+    -webkit-transition: all .5s linear;
+    -o-transition: all .5s linear;
+    -moz-transition: all .5s linear;
+    transition: all .5s linear;
+    z-index: 4;
+    padding-top: 10px;
+}
+
+.gridmax-sr-only {
+    border: 0;
+    clip: rect(1px,1px,1px,1px);
+    -webkit-clip-path: inset(50%);
+    clip-path: inset(50%);
+    height: 1px;
+    width: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute !important;
+    word-wrap: normal !important;
+}
+
+.gridmax-grid-post-categories a {
+    display: inline-block;
+    color: #17181e !important;
+    background: #ffe66a !important;
+    padding: 5px 5px;
+    font: normal normal 10px 'Encode Sans Condensed',Arial,Helvetica,sans-serif;
+    line-height: 1;
+    margin: 0 3px 2px 0;
+    /*text-transform: uppercase;*/
+    letter-spacing: 0.5px;
+    -webkit-transition: all .5s linear;
+    -o-transition: all .5s linear;
+    -moz-transition: all .5s linear;
+    transition: all .2s linear;
+    text-shadow: none;
+}
+
+/*控制卡片的長寬大小*/
+.RSdefault-card{
+/*  height: 290px;*/
+  height: 45vh;
+  width: 17vw;
+  overflow: hidden;
+  border-radius:.28571429rem;
+  box-shadow:0 1px 3px 0 #d4d4d5, 0 0 0 1px #d4d4d5;
+}
+
+#ShowRecommendationInfo, .layout, .layout-column, .layout-row {
+  box-sizing: border-box;
+}
+
+/*RS畫面中，最上面的Bar*/
+#RSTopMenu{
+  background-color:#435564;
+  height:8.4vh;
+/*  border-style:dashed;
+  border-width:4px;
+  border-color: #435564;*/
+}
+
+/*隱藏視窗被壓縮時，跑出Scroll破壞版面*/
+.RScolumn{
+  overflow-x: hidden;
+}
+
+/*回到最上方的按鈕*/
+#RSReturnTop{
+  text-align: center;
+  padding-top: 2.5vh;
+  width: 6vw;
+  height: 9vh;
+  position: fixed;
+  top:85%;
+  right: 0px;
+  /*background-color:#EFEDED;
+  border-style:solid;
+  border-width:4px;
+  border-color: #435564;*/
+}
+
+/*顯示首頁的推薦清單*/
+.PRSBlock{
+  display: flex;
+  justify-content: flex-start;
+  margin : 5px;
+}
+
+.tab-item-thumbnail{
+  margin : 5px;
+}
+
+.tab-item-inner{
+   margin : 5px;
+}
+
+.tab-item-inner ,group{
+  width: 250px;
+}
+
+/*首頁的縮圖大小*/
+.RRShomepagepic{
+  width: 49px;
+  height: 73px;
+  box-shadow:0 1px 3px 0 #d4d4d5, 0 0 0 1px #d4d4d5;
+}
+
+
+/*20210513測試*/
+#RSslideshow { 
+margin: 50px auto; 
+position: relative; 
+width: 50vw; 
+height: 50vh; 
+/*padding: 10px; 
+box-shadow: 0 0 20px rgba(0,0,0,0.4); */
+} 
+
+#RSslideshow > div { 
+position: absolute; 
+width: 50vw; 
+height: 50vh; 
+/*top: 10px; 
+left: 10px; 
+right: 10px; 
+bottom: 10px; */
+} 
+
+
+/*c01端的呈現畫面用 - primo本身的css*/
+md-card md-card-title {
+    padding: 24px 16px 16px;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: row;
+}
+
+md-card {
+  background-color: #fff;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  margin: 8px;
+}
+
+md-card md-card-content {
+    padding: 16px;
+    padding: 2em 1em;
+    box-shadow: 0 1px 3px 0 #d4d4d5, 0 0 0 1px #d4d4d5;
+}
+
+md-card md-card-title+md-card-content {
+    padding-top: 0;
+}
+
+md-content, md-content.md-primoExplore-theme {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 #f1c16f;
+}
+
+md-content {
+    position: relative;
+    overflow: auto;
+}
+
+.layout-row {
+    flex-direction: row;
+}
+
+.layout, .layout-column, .layout-row {
+    display: flex;
+}
