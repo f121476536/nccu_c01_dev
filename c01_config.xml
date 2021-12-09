@@ -10,15 +10,19 @@
             <port>8882</port>
         </c01_api>
         <c01_camera>
-            <save_pic>C:\Users\admin\Desktop\c01\c01-prs\lib\usr-pic</save_pic>
+            <save_pic>usr-pic</save_pic>
+            <save_done_pic>usr-done-pic</save_done_pic>
         </c01_camera>
         <run_chrome>
             <file_dir>C:\Program Files\Google\Chrome\Application\chrome.exe</file_dir>
             <prs_page>C:\Users\admin\Desktop\c01\c01-prs\index.html</prs_page>
             <!--用新建使用者模式開啟，並將新建使用者的資料儲存至此目錄-->
-            <para_usr>C:\Users\admin\Desktop\c01\c01-prs\lib\chrome-usr</para_usr>
+            <para_usr>chrome-usr</para_usr>
             <start_page>C:\Users\admin\Desktop\c01\c01-prs\startpage.html</start_page>
         </run_chrome>
+        <lib_account>
+            <file_dir>api-result\usr_lib_account_cache.txt</file_dir>
+        </lib_account>
         <usrinfo_js>
             <file_dir>api-result\userinfo-result.js</file_dir>
         </usrinfo_js>
@@ -41,23 +45,19 @@
             <key>l8xxc7b903b67fbf4a3db33e7c7d5ff838f6</key>
             <response_format>json</response_format>
         </alma_api>
-        <!--NCCU API Server，再取得上傳Imgur需要的參數-->
-        <get_imgur_config>
-            <address>http://140.119.127.32</address>
-            <port>81</port>
-            <routing>/v1/get_pic_config/</routing>
-        </get_imgur_config>
         <!--NCCU API Server，再取得某讀者的推薦清單-->
         <get_PRS_list>
-            <address>http://140.119.127.32</address>
-            <port>81</port>
-            <routing>/v1/PRS/</routing>
+            <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
+            <address>https://sysk8s31.ddns.net</address>
+            <port>443</port>
+            <routing>/v1/prs_get_topk_list_by_userid</routing>
         </get_PRS_list>
         <!--NCCU API Server情緒分析完後，取得該分析的圖片-->
         <get_user_emotion_pic>
-            <address>http://140.119.127.32</address>
-            <port>81</port>
-            <routing>/v1/download_pic/</routing>
+            <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
+            <address>https://sysk8s31.ddns.net</address>
+            <port>443</port>
+            <routing>/v1/face_recognition_emtion</routing>
         </get_user_emotion_pic>
     </to_server>
 </config>

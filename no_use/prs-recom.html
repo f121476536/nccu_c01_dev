@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>prs-recom</title>
+    <!-- 引入Jquery跟Semantic UI -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="lib\semantic-ui\semantic.min.js"></script>
+    <link rel="stylesheet" href="lib\semantic-ui\semantic.min.css">
+    <!-- 引入本機端的文件-->
+    <script src="lib\api-result\emotion-result.js"></script>
+    <script src="lib\api-result\PRS-result.js"></script>
+    <script src="lib\api-result\userinfo-result.js"></script>
+    <!-- 引入app的css-->
+    <link rel="stylesheet" href="css\custom1.css">
+</head>
+
+<body>
+    <!-- 20210513 -->
+    <div class="ui grid" id="RSTopMenu">
+        <!-- 看起來像網頁的東西 -->
+        <div class="sixteen wide column" style="padding-bottom: 0px;">
+            <div class="ui inverted menu" style="background-color:#435564;">
+                <div class="header item">個人化推薦系統(PRS)</div>
+                <a class="item" data-tab="list-page" onclick="list_page_click();">推薦清單</a>
+                <a class="item" data-tab="emotion-page" onclick="emo_page_click();">情緒分析</a>
+                <!-- 
+                <div class="ui dropdown item" id="domo" tabindex="0" onclick="$('#domo').dropdown('hide')">
+                    Dropdown(測試用，先保留)
+                    <i class="dropdown icon"></i>
+                    <div class="menu transition hidden" tabindex="-1">
+                        <div class="item">Action</div>
+                        <div class="item">Another Action</div>
+                        <div class="item">Something else here</div>
+                        <div class="divider"></div>
+                        <div class="item">Separated Link</div>
+                        <div class="divider"></div>
+                        <div class="item">One more separated link</div>
+                    </div>
+                </div> -->
+                <!--                 目前沒有可以檢索的東西
+                <div class="right menu">
+                    <div class="item">
+                        <div class="ui transparent inverted icon input">
+                            <i class="search icon"></i>
+                            <input type="text" placeholder="Search">
+                        </div>
+                    </div>
+                    <a class="item">Link</a>
+                </div> -->
+            </div>
+        </div>
+        <!--最右邊的推薦資訊 -->
+        <div class="sixteen wide column" style="background-color:#F2F5F8; height: 110vh;">
+            <!--顯示一般的推薦書單畫面 -->
+            <div class="ui tab" data-tab="list-page">
+                <!-- Tab Content !-->
+                <div id="PRS_List_Page">
+                    <h1 class="ui center aligned header">推薦給您的書籍如下</h1>
+                    <div class="ui grid">
+                        <div class="left floated three wide column">
+                            <div class="ui floating labeled icon dropdown button" id="RSLayout" onclick="ClickDropdownById('RSLayout')">
+                                <i class="large filter icon" style="width: 2em;"></i>
+                                <span class="text">
+                                    <div class="ui empty circular label" style="background-color: #4176A5;"></div>
+                                    列表
+                                </span>
+                                <div class="menu">
+                                    <div class="header">
+                                        請選擇呈現方式
+                                    </div>
+                                    <div class="divider"></div>
+                                    <div class="item" onclick="RSChangeLayout('list')">
+                                        <div class="ui empty circular label" style="background-color: #4176A5;"></div>
+                                        列表
+                                    </div>
+                                    <div class="item" onclick="RSChangeLayout('slide')">
+                                        <div class="ui empty circular label" style="background-color: #435564;"></div>
+                                        幻燈片
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right floated two wide column">
+                            <button class="ui labeled icon button" onclick="ClickRatingPage();">
+                                <i class="thumbs up outline large icon"></i>評分
+                            </button>
+                        </div>
+                        <div class="sixteen wide column">
+                            
+                        </div>
+                        <iframe src="prs-recom-list.html" frameborder="0" width="1250px" height="750px"></iframe>
+                    </div>
+                </div>
+            </div>
+            <!--顯示一般的情緒分析畫面 -->
+            <div class="ui tab" data-tab="emotion-page">
+                <!-- Tab Content !-->
+                <div class="sixteen wide column">
+                    <div class="ui card">
+                        <img class="ui rounded image" id="emo-usr-pic" src="https://i.imgur.com/aPxY2xA.jpg">
+                        <div class="content">
+                            <div class="ui grid">
+                                <div class="eight wide column">
+                                    <div class="header">情緒辨識結果為:</div>
+                                </div>
+                                <div class="eight wide column">
+                                    <div class="meta" id="emo-usr-result">正面情緒</div>
+                                </div>
+                                <div class="description">時間?資訊?</div>
+                            </div>
+                        </div>
+                        <div class="extra content">
+                            <div class="ui two buttons">
+                                <div class="ui green button" onclick="test_click('good');">正面情緒</div>
+                                <div class="ui red button" onclick="test_click('bad');">負面情緒</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--最右邊點擊置頂的Icon-->
+            <a href="">
+                <div id="RSReturnTop" onclick="RSGoToTop();"><i class="arrow circle up icon" style="font-size:3em;"></i></div>
+            </a>
+        </div>
+    </div>
+
+    <!--  PRS - 評分面板 -->
+    <div class="ui tiny first modal">
+        <i class="close icon"></i>
+        <div class="content">
+            <div class="description">您覺得這份推薦清單適合您嗎? 歡迎留下您的建議或想法!</div>
+            <p></p>
+            <div class="ui grid">
+                <div class="three wide column">
+                    <div class="description">評價:</div>
+                </div>
+                <div class="three wide column">
+                    <div class="ui star rating" data-rating="4" data-max-rating="5" id='usr-rating'></div>
+                </div>
+            </div>
+            <form class="ui reply form">
+                <div class="field">
+                    <textarea id='usr-comment'>我覺得相當不錯!</textarea>
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">取消</div>
+            <div class="ui positive right labeled icon button" id="RightBtn" onclick="SendComment();">送出評價<i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+    <!--  PRS - 留言成功的通知面板 -->
+    <div class="ui tiny second modal">
+        <div class="content">
+            <p>已成功收到該留言! 感謝您的意見分享!</p>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">確認</div>
+        </div>
+    </div>
+
+</body>
+
+</html>
+<script type="text/javascript">
+
+function ClickRatingPage() {
+    $('.tiny.first.modal').modal({allowMultiple: false}).modal('setting', 'closable', false).modal('show');
+}
+
+function list_page_click() {
+    console.log('list_page_click');
+}
+
+function emo_page_click() {
+    console.log('emo_page_click');
+    $('#emo-usr-pic').transition('scale');
+}
+
+function SendComment(){
+
+    //取得使用者的帳號、登入時間、評級以及評論留言
+    let user_info = GetUserInfo();
+    //若取Textarea值，不能使用 .text() 或 .html() ，只能使用 .val()。
+    let comment = $('#usr-comment').val();
+    let rating = $('#usr-rating').rating('get rating');
+    user_info['comment'] = comment;
+    user_info['rating'] = rating;
+
+    let url = 'http://140.119.127.32:81/v1/reveice_comment';
+    $.post(url, user_info, function(dom) {
+        //console.log(dom);
+        $('.second.modal').modal('setting', 'closable', false).modal('show', '#RightBtn');
+    }) ;  
+}
+
+//開啟網頁時，能直接預設顯示推薦清單的頁面
+$('.menu .item').tab('change tab', 'list-page');
+//$('.menu .item').tab('change tab', 'emotion-page');
+
+//評分按鈕
+$('.rating').rating();
+
+
+
+</script>

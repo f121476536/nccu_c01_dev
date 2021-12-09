@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入Jquery跟Semantic UI -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="lib\semantic-ui\semantic.min.js"></script>
+    <link rel="stylesheet" href="lib\semantic-ui\semantic.min.css">
+</head>
+
+<body>
+    <iframe id="nccu_holding_iframe" src="" frameborder="0" style=" position:fixed; left:0px; top: 0px;" height="100%" width="100%"></iframe>
+
+    <!--最右邊點擊置頂的Icon-->
+    <a href="index.html">
+        <div id="RSReturnMainPage"><i class="arrow circle up icon" style="font-size:3em;"></i></div>
+    </a>
+
+
+    <!-- <div id="page_return_btn" class="ui blue button">取消</div> -->
+</body>
+
+    <script>        
+        var thisURL = document.URL;      
+        var getval =thisURL.split('?')[1];  
+        let url = 'https://nccu.primo.exlibrisgroup.com/discovery/fulldisplay?' + getval + '&context=U&vid=886NCCU_INST:886NCCU_INST&lang=zh-tw'
+        console.log(url);
+        $('#nccu_holding_iframe').attr('src',url);
+
+    </script>
+
+    <style>
+        /*回到最上方的按鈕*/
+        #RSReturnMainPage{
+        text-align: center;
+        padding-top: 2.5vh;
+        width: 6vw;
+        height: 9vh;
+        position: fixed;
+        top:85%;
+        right: 0px;
+        /*background-color:#EFEDED;
+        border-style:solid;
+        border-width:4px;
+        border-color: #435564;*/
+        }
+
+        /*回到最上方的按鈕*/
+        #page_return_btn{
+        text-align: center;
+        position: fixed;
+        top:92%;
+        right: 70%;
+        /*background-color:#EFEDED;
+        border-style:solid;
+        border-width:4px;
+        border-color: #435564;*/
+        }
+    </style>
+</html>
