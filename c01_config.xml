@@ -24,12 +24,15 @@
             <file_dir>api-result\usr_lib_account_cache.txt</file_dir>
         </lib_account>
         <usrinfo_js>
+            <function_name>GetUserInfo</function_name>
             <file_dir>api-result\userinfo-result.js</file_dir>
         </usrinfo_js>
         <prsresult_js>
+            <function_name>GetPRSAPIResult</function_name>
             <file_dir>api-result\PRS-result.js</file_dir>
         </prsresult_js>
         <emotion_result_js>
+            <function_name>GetEmotionAPIResult</function_name>
             <file_dir>api-result\emotion-result.js</file_dir>
         </emotion_result_js>
         <usr_pic>
@@ -50,14 +53,27 @@
             <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
             <address>https://sysk8s31.ddns.net</address>
             <port>443</port>
-            <routing>/v1/prs_get_topk_list_by_userid</routing>
+            <version>v1</version>
+            <routing>prs_get_topk_list_by_userid</routing>
         </get_PRS_list>
         <!--NCCU API Server情緒分析完後，取得該分析的圖片-->
         <get_user_emotion_pic>
             <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
             <address>https://sysk8s31.ddns.net</address>
             <port>443</port>
-            <routing>/v1/face_recognition_emtion</routing>
+            <version>v1</version>
+            <routing>face_recognition_emtion</routing>
         </get_user_emotion_pic>
     </to_server>
+    <to_ros>
+        <robot_api>
+            <protocol>http</protocol>
+            <ip>10.234.161.69</ip>
+            <port>8882</port>
+            <route>GeosatRobot/api</route>
+            <option1>Device</option1>
+            <option2>Reboot</option2>
+            <option3>Shutdown</option3>
+        </robot_api>
+    </to_ros>
 </config>
