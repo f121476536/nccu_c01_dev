@@ -2,13 +2,27 @@
 <config>
     <to_local>
         <c01_lib>
-            <!--若要更改目錄，請直接更改此主要目錄-->
-            <file_dir>C:\Users\admin\Desktop\c01\c01-prs\lib</file_dir>
+            <lib_dir>lib</lib_dir>
+            <static_dir>api-result</static_dir>
         </c01_lib>
-        <c01_api>
-            <ip>10.234.161.69</ip>
-            <port>8882</port>
-        </c01_api>
+        <usrinfo_js>
+            <function_name>GetUserInfo</function_name>
+            <file_name>userinfo-result.js</file_name>
+        </usrinfo_js>
+        <prsresult_js>
+            <function_name>GetPRSAPIResult</function_name>
+            <file_name>PRS-result.js</file_name>
+        </prsresult_js>
+        <emotion_result_js>
+            <function_name>GetEmotionAPIResult</function_name>
+            <file_name>emotion-result.js</file_name>
+        </emotion_result_js>
+        <account_cache>
+            <file_name>account_cache.txt</file_name>
+        </account_cache>
+        <usr_pic>
+            <pic_dir>usr-pic</pic_dir>
+        </usr_pic>
         <c01_camera>
             <save_pic>usr-pic</save_pic>
             <save_done_pic>usr-done-pic</save_done_pic>
@@ -20,24 +34,6 @@
             <para_usr>chrome-usr</para_usr>
             <start_page>C:\Users\admin\Desktop\c01\c01-prs\startpage.html</start_page>
         </run_chrome>
-        <lib_account>
-            <file_dir>api-result\usr_lib_account_cache.txt</file_dir>
-        </lib_account>
-        <usrinfo_js>
-            <function_name>GetUserInfo</function_name>
-            <file_dir>api-result\userinfo-result.js</file_dir>
-        </usrinfo_js>
-        <prsresult_js>
-            <function_name>GetPRSAPIResult</function_name>
-            <file_dir>api-result\PRS-result.js</file_dir>
-        </prsresult_js>
-        <emotion_result_js>
-            <function_name>GetEmotionAPIResult</function_name>
-            <file_dir>api-result\emotion-result.js</file_dir>
-        </emotion_result_js>
-        <usr_pic>
-            <file_dir>usr-pic</file_dir>
-        </usr_pic>
     </to_local>
     <to_server>
         <alma_api>
@@ -68,7 +64,7 @@
     <to_ros>
         <robot_api>
             <protocol>http</protocol>
-            <ip>10.234.161.69</ip>
+            <ip>10.234.163.43</ip>
             <port>8882</port>
             <route>GeosatRobot/api</route>
             <option1>Device</option1>

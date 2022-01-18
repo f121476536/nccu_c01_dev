@@ -1,4 +1,0 @@
-function GetUserInfo(){
-  let result = {};
-  return result
-}
