@@ -20,19 +20,16 @@
         <account_cache>
             <file_name>account_cache.txt</file_name>
         </account_cache>
-        <usr_pic>
-            <pic_dir>usr-pic</pic_dir>
-        </usr_pic>
         <c01_camera>
-            <save_pic>usr-pic</save_pic>
-            <save_done_pic>usr-done-pic</save_done_pic>
+            <save_dir>usr-pic</save_dir>
+            <save_done_dir>usr-done-pic</save_done_dir>
         </c01_camera>
         <run_chrome>
             <file_dir>C:\Program Files\Google\Chrome\Application\chrome.exe</file_dir>
-            <prs_page>C:\Users\admin\Desktop\c01\c01-prs\index.html</prs_page>
+            <prs_file>index.html</prs_file>
             <!--用新建使用者模式開啟，並將新建使用者的資料儲存至此目錄-->
-            <para_usr>chrome-usr</para_usr>
-            <start_page>C:\Users\admin\Desktop\c01\c01-prs\startpage.html</start_page>
+            <para_dir_name>chrome-usr</para_dir_name>
+            <start_file>startpage.html</start_file>
         </run_chrome>
     </to_local>
     <to_server>
@@ -47,19 +44,24 @@
         <!--NCCU API Server，再取得某讀者的推薦清單-->
         <get_PRS_list>
             <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
-            <address>https://sysk8s31.ddns.net</address>
+            <address>https://sysk8s.lib.nccu.edu.tw</address>
             <port>443</port>
             <version>v1</version>
             <routing>prs_get_topk_list_by_userid</routing>
         </get_PRS_list>
         <!--NCCU API Server情緒分析完後，取得該分析的圖片-->
-        <get_user_emotion_pic>
-            <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
-            <address>https://sysk8s31.ddns.net</address>
+        <emotion_api>
+            <address>https://sysk8s.lib.nccu.edu.tw</address>
             <port>443</port>
             <version>v1</version>
             <routing>face_recognition_emtion</routing>
-        </get_user_emotion_pic>
+        </emotion_api>
+        <qa_api>
+            <address>http://140.119.127.32</address>
+            <port>8002</port>
+            <version>v1</version>
+            <routing>qa_system_question</routing>
+        </qa_api>
     </to_server>
     <to_ros>
         <robot_api>

@@ -4,10 +4,7 @@ import json
 import time
 import datetime
 import os
-#import cv2
 import math
-#import numpy
-#from PIL import Image, ImageDraw, ImageFont
 import base64
 from requests.api import post
 import xml.etree.ElementTree as ET
@@ -18,7 +15,9 @@ from typing import List, Dict
 from enum import Enum, auto
 import time
 import sys
-
+import cv2
+import numpy
+from PIL import Image, ImageDraw, ImageFont
 @dataclass
 class DirController:
     #定義該程式所需要用到的檔案及路徑
@@ -61,8 +60,9 @@ class RobotConfig:
         return f'{self.current_dir}/{local_lib_dir}'       
 
     def get_static_dir(self) -> str:
-        get_static_dir = self.robot_config_map['to_local_c01_lib_static_dir']
-        return f'{self.current_dir}/{get_static_dir}' 
+        local_lib_dir = self.get_local_lib_dir()
+        static_dir = self.robot_config_map['to_local_c01_lib_static_dir']
+        return f'{local_lib_dir}/{static_dir}' 
 
     def get_account_cache_dir(self) -> str:
         lib_dir = self.get_local_lib_dir()
@@ -98,14 +98,23 @@ class RobotConfig:
 
     #取得讀者情緒辨識的API
     def get_face_emtion_api(self) -> str:
-        address = self.robot_config_map['to_server_get_user_emotion_pic_address']
-        port = self.robot_config_map['to_server_get_user_emotion_pic_port']
-        version = self.robot_config_map['to_server_get_user_emotion_pic_version']
-        routing = self.robot_config_map['to_server_get_user_emotion_pic_routing']
+        address = self.robot_config_map['to_server_emotion_api_address']
+        port = self.robot_config_map['to_server_emotion_api_port']
+        version = self.robot_config_map['to_server_emotion_api_version']
+        routing = self.robot_config_map['to_server_emotion_api_routing']
         return f'{address}:{port}/{version}/{routing}'
 
+    #取得問答系統的API
+    def get_question_answer_api(self) -> str:
+        address = self.robot_config_map['to_server_qa_api_address']
+        port = self.robot_config_map['to_server_qa_api_port']
+        version = self.robot_config_map['to_server_qa_api_version']
+        routing = self.robot_config_map['to_server_qa_api_routing']
+        return f'{address}:{port}/{version}/{routing}'
+    
 class WebTransferHandler:
-    def get_url_header(self):
+    #取得連線Header設置
+    def get_url_header(self) -> Dict[str, str]:
         header = {
             'Content-type': 'application/x-www-form-urlencoded',
             'Accept': '*/*',
@@ -113,23 +122,132 @@ class WebTransferHandler:
             'Connection': 'keep-alive'}
         return header
   
-    def get_url_body(self, event):
+    #取得機器人Body格式設置
+    def get_url_body(self, event: Dict[str, str]) -> Dict[str, str]:
         api_time = str(datetime.datetime.today().strftime('%Y-%m-%dT%H:%M:%SZ'))
         api_request_id = 'REQ' + str(datetime.datetime.today().strftime('%Y%m%d%H%M'))
         body = {**{"time": api_time, "requestId": api_request_id}, **event}
         body = {'paraString': json.dumps(body, sort_keys=True, indent=1)}
         return body
 
-    def send_post(self, url, header, data):
+    #發出Post請求
+    def send_post(self, url: str, header: Dict[str, str], data: Dict[str, str]):
         r = requests.post(url, headers = header, data = data, verify=False)
         if(r.status_code == 200):
             return r.json()
         else:
             EventListener().exit_app('Post sending error has occurred.')
+class RobotCamara:
+    def __init__(self) -> None:
+        self.config: RobotConfig = RobotConfig()
+        self.life: bool = True
+        self.height: int = 0
+        self.width: int = 0
+        self.frame: numpy.ndarray = None
+        self.window_name: str = 'webcam window'
+        self.camera_save_dir: str = self.get_camera_save_dir()
+        self.font_face: str = "Font/simsun.ttc"
+        self.guide_text: str = '請依照指示位置並點擊螢幕進行拍攝'
+
+    #取得儲存使用者照片目錄
+    def get_camera_save_dir(self) -> str:
+        lib_dir = self.config.get_local_lib_dir()
+        pic_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        camera_save_dir = f'{lib_dir}/{pic_dir}'
+        return camera_save_dir
+    
+    #開啟拍攝鏡頭
+    def activate_shooting_window(self) -> None:
+        len = self.select_equipment()
+        cv2.namedWindow(self.window_name)
+        self.height, self.width = self.get_frame_height_and_width(len)
+        cv2.setMouseCallback(self.window_name, self.click_action_event, None)
+        
+        while(self.life):
+            ret, self.frame = len.read()
+            self.set_silhouette()
+            cv2.imshow(self.window_name, self.frame)
+            # 按下ECS可以離開畫面
+            k = cv2.waitKey(1)
+            if k==27:
+                break
+        len.release()
+        cv2.destroyAllWindows() 
+
+    #拍攝裝置選擇
+    def select_equipment(self) -> cv2.VideoCapture:
+        len = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        return len
+  
+    #取得畫面框的長寬
+    def get_frame_height_and_width(self, len: cv2.VideoCapture) -> int:
+        ret, frame = len.read()
+        height, width, pixels = frame.shape
+        return height, width
+
+    #掛載滑鼠點擊事件
+    def click_action_event(self, event, x, y, flags, param) -> None:  
+        if event == cv2.EVENT_LBUTTONDOWN: 
+            pic_name = str(datetime.datetime.today().strftime('%Y%m%d%H%M%S%f'))
+            cv2.imwrite(self.camera_save_dir + '/' + pic_name + '.png', self.frame)
+            self.life = False
+    
+    #顯示拍攝時的說明文字、人形引導
+    def set_silhouette(self) -> None:
+        #文字說明
+        YELLOW = (255, 255, 0)
+        left = 50
+        top = 30
+        text_size = 32
+        self.show_text_on_frame(self.guide_text, left, top, YELLOW, text_size)
+
+        #畫人形
+        center_point = (int(self.width / 2), int(self.height / 2))
+        radius = 100
+        GREEN = (0, 176, 80)
+        thickness = 3
+        cv2.circle(self.frame, center_point, radius, GREEN, thickness)
+        
+        #線條
+        neck_length = 63
+        line_left_start_point = self.get_x_y_position(center_point[0], center_point[1], radius, 240)
+        line_left_end_point = (line_left_start_point[0], line_left_start_point[1] + neck_length)
+        thickness = 5
+        cv2.line(self.frame, line_left_start_point, line_left_end_point, GREEN, thickness)
+        line_right_start_point = self.get_x_y_position(center_point[0], center_point[1], radius, 300)
+        line_right_end_point = (line_right_start_point[0], line_right_start_point[1] + neck_length)    
+        cv2.line(self.frame, line_right_start_point, line_right_end_point, GREEN, thickness)
+
+        #圓圈
+        center_point = (center_point[0], center_point[1] + 500)
+        radius += 250
+        thickness = 3
+        cv2.circle(self.frame, center_point, radius, GREEN, thickness)
+ 
+    #顯示說明文字於拍攝畫面
+    def show_text_on_frame(self, text, left, top, text_color, text_size) -> None:
+        #判斷是否OpenCV圖片類型
+        if (isinstance(self.frame, numpy.ndarray)):
+            self.frame = Image.fromarray(cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB))
+                
+        draw = ImageDraw.Draw(self.frame)
+        font_text = ImageFont.truetype(self.font_face, text_size, encoding = "utf-8")
+        draw.text((left, top), text, text_color, font = font_text)
+        self.frame = cv2.cvtColor(numpy.asarray(self.frame), cv2.COLOR_RGB2BGR)
+
+    #取得x,y座標
+    def get_x_y_position(self, centerX, centerY, radius, angle) -> int:
+        degree = -math.radians(angle)
+        x = (int)(centerX + radius * math.cos(degree))
+        y = (int)(centerY + radius * math.sin(degree))
+        return x, y
+                
 class RobotFunctionality:
     def __init__(self) -> None:  
         self.config = RobotConfig()
         self.web_handler = WebTransferHandler()
+        self.camara = RobotCamara()
+        self.file_builder = LocalFileBuilder()
         
     #感應NFC卡片，讀取卡片中儲存的卡片內碼
     def read_nfc_card(self) -> str:
@@ -157,7 +275,7 @@ class RobotFunctionality:
         return alma_account        
             
     #操控機器人語音發聲
-    def speak_text(self, c01_api_url, text) -> None:
+    def speak_text(self, text: str) -> None:
         url = self.config.get_ros_api()
         url_header = self.web_handler.get_url_header()
         event = {"action": "start", "deviceId": "SPEAKER", "content": text}
@@ -183,7 +301,7 @@ class RobotFunctionality:
         return waypoints_list
 
     #操控機器人前往某一個點位
-    def go_to_waypoint(self, waypoint) -> None:
+    def go_to_waypoint(self, waypoint: str) -> None:
         url = self.config.get_ros_api()
         url_header = self.web_handler.get_url_header()
         event = {"action": "start", "deviceId": "NAVIGATION", "content": waypoint}
@@ -199,7 +317,7 @@ class RobotFunctionality:
         result_text = self.web_handler.send_post(url, url_header, url_body)
 
     #操控機器人手部動作
-    def change_arm_movement(self, mode) -> None:
+    def change_arm_movement(self, mode: int) -> None:
         url = self.config.get_ros_api()
         url_header = self.web_handler.get_url_header()
         event = {"action": "start", "deviceId": "ROBOTARMCONTROL", "content": f'arm/{str(mode)}'}  
@@ -207,7 +325,7 @@ class RobotFunctionality:
         result_text = self.web_handler.send_post(url, url_header, url_body)   
     
     #操控機器人脖子動作
-    def change_neck_movement(self, direction, rotation):
+    def change_neck_movement(self, direction: int, rotation: int):
         url = self.config.get_ros_api()
         url_header = self.web_handler.get_url_header()
         event = {"action": "start", "deviceId": "ROBOTNECKMOVE", "content": f'{direction}/{rotation}'} 
@@ -215,13 +333,44 @@ class RobotFunctionality:
         result_text = self.web_handler.send_post(url, url_header, url_body)
                
     #操控機器人表情
-    def change_face(self, emotion):
+    def change_face(self, emotion: str):
         url = self.config.get_ros_api()
         url_header = self.web_handler.get_url_header()
         event = {"action": "start", "deviceId": "EMOTION", "content": emotion} 
         url_body = self.web_handler.get_url_body(event)
         result_text = self.web_handler.send_post(url, url_header, url_body)
-   
+    
+    #情緒識別
+    def recognize_emotion(self, account: str) -> Dict[str, str]:
+        #取得情緒辨識的API
+        url = self.config.get_face_emtion_api()
+        url_header = self.web_handler.get_url_header()
+        
+        #取得辨識前圖片檔案
+        lib_dir = self.config.get_local_lib_dir()
+        save_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        full_save_dir = f'{lib_dir}/{save_dir}'
+        file_name = [file for file in os.listdir(full_save_dir)][0]
+        
+        #將辨識前圖片檔案編碼後，打API做辨識
+        pic_base64 = self.file_builder.encode_pic_to_base64(f'{full_save_dir}/{file_name}', account)
+        result_text = self.web_handler.send_post(url, url_header, pic_base64)
+        
+        #回傳結果的base64，將其轉回識別後圖片並儲存
+        save_done_pic = self.config.robot_config_map['to_local_c01_camera_save_done_dir']
+        done_file = f'{lib_dir}/{save_done_pic}/{file_name}'
+        self.file_builder.decode_base64_to_pic(done_file, result_text['usr_face_recogni_pic'])
+        result_text['usr_face_recogni_pic'] = done_file
+        return result_text
+    
+    def question_answer(self, question: str) -> None:
+        #取得情緒辨識的API
+        url = self.config.get_question_answer_api()
+        url_header = self.web_handler.get_url_header()
+        question = {'question': question}
+        result_text = self.web_handler.send_post(url, url_header, question)      
+        print(f'result_text = {result_text}')   
+        
 @dataclass
 class RobotFace:
     ANGRY: str = 'Angry'
@@ -260,21 +409,21 @@ class LocalFileBuilder:
         None
      
     #將新的檔案內容，儲存至JS靜態檔案
-    def save_js_static_file(self, content: Dict[str, str], file_dir: str) -> None:
-        content = ''
+    def save_js_static_file(self, writing_content: Dict[str, str], file_dir: str) -> None:
+        keyword = "let result = "
+        file_content = ''
         with open(file_dir, 'r', encoding = "utf-8") as f:
             line = f.readlines()
             for l in line:
                 try:
-                    keyword = "let result = "
                     p = l.index(keyword)
-                    content += l[:p] + keyword + content + ';\n'
+                    file_content += l[:p] + keyword + str(writing_content) + ';\n'
                 except Exception as e:
-                    content += l
+                    file_content += l
                     continue
                 
         with open(file_dir, "w", encoding="utf-8") as f:
-            f.write(content)
+            f.write(file_content)
     
     #初始化JS靜態檔案
     def initialize_js_static_file(self, function_name: str, file_dir: str) -> None:      
@@ -318,6 +467,18 @@ class LocalFileBuilder:
         now_date = datetime.datetime.now().date()
         return True if now_date > file_date else False
     
+    #圖片編碼成base64
+    def encode_pic_to_base64(self, img_path, usr_acc):
+        with open(img_path, 'rb') as f:
+            image_data = f.read()
+            return {'usr_acc': usr_acc, 'base64_data': str(base64.b64encode(image_data),'utf-8')}
+
+    #base64解碼成圖片
+    def decode_base64_to_pic(self, img_path, base64_data):
+        with open(img_path, 'wb') as file:
+            jiema = base64.b64decode(base64_data)
+            file.write(jiema) 
+                        
 class RobotService:
     def __init__(self) -> None:
         self.robot_function = RobotFunctionality()
@@ -347,43 +508,81 @@ class RobotService:
         return alma_account
 
     #紀錄讀者帳號跟讀者登入時間
-    def record_user_login_info(self, alma_account: str) -> None:
+    def record_user_login_info(self, alma_account: str) -> None:      
         login_time = str(datetime.datetime.today().strftime('%Y%m%d%H%M%S'))
-        content = json.dumps({'user_account': alma_account, 'login_time': login_time})
-        
+        content = {'user_account': alma_account, 'login_time': login_time}
+
+        #儲存成JS靜態檔案  
         static_dir = self.config.get_static_dir()
         file_name = self.config.robot_config_map['to_local_usrinfo_js_file_name']
         file_dir = f'{static_dir}/{file_name}'
+        function_name = self.config.robot_config_map['to_local_usrinfo_js_function_name']
+        self.file_builder.initialize_js_static_file(function_name, file_dir)
+        self.file_builder.save_js_static_file(content, file_dir)
+     
+    #進行讀者表情拍攝
+    def take_user_photo(self, account: str) -> None:
+        #刪除上次的照片檔案
+        lib_dir = self.config.get_local_lib_dir()
+        pic_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        file_list = [file for file in os.listdir(f'{lib_dir}/{pic_dir}')]
+        if(len(file_list) != 0):
+            self.file_builder.delete_existing_file(f'{lib_dir}/{pic_dir}/{file_list[0]}')
+        self.robot_function.camara.activate_shooting_window()
         
+        #將情緒辨識後的內容進行重組
+        api_result = self.robot_function.recognize_emotion(account)
+        content = {}
+        content['emotion'] = api_result['emotion_tag']
+        content['img_dir'] = api_result['usr_face_recogni_pic']
+
+        #儲存成JS靜態檔案
+        static_dir = self.config.get_static_dir()
+        file_name = self.config.robot_config_map['to_local_emotion_result_js_file_name']
+        file_dir = f'{static_dir}/{file_name}'
         function_name = self.config.robot_config_map['to_local_usrinfo_js_function_name']
         self.file_builder.initialize_js_static_file(function_name, file_dir)
         self.file_builder.save_js_static_file(content, file_dir)
     
-    def take_user_photo(self) -> None:
-        #刪除上次的照片
+    #顯示視覺化介面
+    def show_user_interface(self) -> None:
+        current_dir = DirController().current_dir
+        file_dir = self.config.robot_config_map['to_local_run_chrome_file_dir']
+        prs_file = self.config.robot_config_map['to_local_run_chrome_prs_file']
+        prs_dir = f'{current_dir}/{prs_file}'
+        para_dir_name = self.config.robot_config_map['to_local_run_chrome_para_dir_name']
         lib_dir = self.config.get_local_lib_dir()
-        pic_dir = self.config.robot_config_map['to_local_usr_pic_pic_dir']
-        file_list = [file for file in os.listdir(f'{lib_dir}/{pic_dir}')]
-        if(len(file_list) != 0):
-            self.file_builder.delete_existing_file(f'{lib_dir}/{pic_dir}/{file_list[0]}')
-
-class RobotCamara:
-    def __init__(self) -> None:
-        pass
+        para_dir = f'{lib_dir}/{para_dir_name}'
+        cmd = f'"{file_dir}" --app={prs_dir} --user-data-dir={para_dir} --start-fullscreen'
+        print(f'cmd = {cmd}')
+        os.system(cmd)
     
-    def initializer(self) -> None:
-        window_name = 'webcam capture'
-        #cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    def consult_question(self) -> None:
+        #開啟麥克風
+        #關閉麥克風
+        #儲存成音檔
+        #辨識，轉文字
+        question = '請問創客幾點開?'    
         
-    
+        #將文字打API
+        self.robot_function.question_answer(question)
+        
+        #直接念回答?
+        
+        #(optional)顯示圖表資訊?
+        
+        
 def main() -> None:
-    # robot_service = RobotService()
-    # #alma_account = robot_service.identify_reader()
-    # #robot_service.record_user_login_info(alma_account)
-    # robot_service.take_user_photo()
+    robot_service = RobotService()
+    #alma_account = robot_service.identify_reader()
+    #robot_service.record_user_login_info(alma_account)
+    #robot_service.take_user_photo(alma_account)
+    #robot_service.show_user_interface()
+    robot_service.consult_question()
     
-    #RobotFunctionality().change_face(RobotFace.ANGRY)
-    RobotFunctionality().change_arm_movement(RobotArm.HI_1)
+    # RobotFunctionality().change_face(RobotFace.ANGRY)
+    # RobotFunctionality().change_arm_movement(RobotArm.HI_1)
+    
     print('done')
     
 if __name__ == "__main__":

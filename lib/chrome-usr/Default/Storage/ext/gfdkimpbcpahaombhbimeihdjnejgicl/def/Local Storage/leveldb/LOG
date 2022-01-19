@@ -1,3 +1,2 @@
-2021/07/16-17:02:48.058 3f2c Reusing MANIFEST C:\Users\admin\Desktop\c01\c01-prs\lib\chrome-usr\Default\Storage\ext\gfdkimpbcpahaombhbimeihdjnejgicl\def\Local Storage\leveldb/MANIFEST-000001
-2021/07/16-17:02:48.061 3f2c Recovering log #3
-2021/07/16-17:02:48.063 3f2c Reusing old log C:\Users\admin\Desktop\c01\c01-prs\lib\chrome-usr\Default\Storage\ext\gfdkimpbcpahaombhbimeihdjnejgicl\def\Local Storage\leveldb/000003.log 
+2022/01/19-10:32:02.995 372c Creating DB D:\hanwen\git-repos\nccu_c01_dev\lib\chrome-usr\Default\Storage\ext\gfdkimpbcpahaombhbimeihdjnejgicl\def\Local Storage\leveldb since it was missing.
+2022/01/19-10:32:03.425 372c Reusing MANIFEST D:\hanwen\git-repos\nccu_c01_dev\lib\chrome-usr\Default\Storage\ext\gfdkimpbcpahaombhbimeihdjnejgicl\def\Local Storage\leveldb/MANIFEST-000001
