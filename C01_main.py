@@ -668,12 +668,17 @@ class RobotService:
         
         # 機器人反應
         time.sleep(5)
-        answer = answer[len(answer)-1]
+        answer = self.text_processer.remove_a_tag_to_string(answer[len(answer)-1])
+        # print(f'answer = {answer}')
         self.robot_function.speak_text(answer)
         self.robot_function.change_face(RobotFace.EXCITED)
         self.robot_function.change_arm_movement(RobotArm.LOOKFOR)
         
 class TextProcesser():
+    def __init__(self) -> None:
+        self.start_tag = '<a>'
+        self.end_tag = '</a>'
+
     def find_char_position_in_string(self, string: str, char: str) -> List[int]:
         position = []
         n = 0
@@ -683,12 +688,10 @@ class TextProcesser():
                 position.append(n)
         return position
 
-    def add_a_tag_to_string(self, string: str):
-        start_tag = '<a>'
-        end_tag = '</a>'
+    def add_a_tag_to_string(self, string: str) -> str:
         start_tag_position = self.find_char_position_in_string(
-            string, start_tag)
-        end_tag_position = self.find_char_position_in_string(string, end_tag)
+            string, self.start_tag)
+        end_tag_position = self.find_char_position_in_string(string, self.end_tag)
         tag_num = len(start_tag_position)
         replace_ele = {}
         if(tag_num != len(end_tag_position)):
@@ -696,18 +699,31 @@ class TextProcesser():
         else:
             for i in range(0, tag_num):
                 sub_string = string[start_tag_position[i] +
-                                    len(start_tag):end_tag_position[i] - 1]
+                                    len(self.start_tag):end_tag_position[i] - 1]
                 sub_string_list = sub_string.split('(')
                 link_word = sub_string_list[0]
                 link_url = sub_string_list[1]
-                replace_ele[f'{start_tag + sub_string}' + ')' +
-                            f'{end_tag}'] = f'<a href="{link_url}">{link_word}</a>'
+                replace_ele[f'{self.start_tag + sub_string}' + ')' +
+                            f'{self.end_tag}'] = f'<a href="{link_url}">{link_word}</a>'
 
         for key in replace_ele:
             value = replace_ele[key]
             string = string.replace(key, value)
         return string
 
+    def remove_a_tag_to_string(self, string: str) -> str:
+        string = string.replace(self.start_tag, '').replace(self.end_tag, '')
+        omit_flag = False
+        new_string = ''
+        for char in string:
+            if char == '(':
+                omit_flag = True
+            elif char == ')':
+                omit_flag = False
+                continue
+            if(not omit_flag):
+                new_string += char
+        return new_string
 
 @dataclass
 class C01Application:

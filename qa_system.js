@@ -45,7 +45,6 @@ function AnswerMaker() {
 
 function AudioRecognizer() {
     this.speech_recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    this.speech_recognition.lang = 'cmn-Hant-TW';
 
     //初始化語音辨識物件的狀態
     this.initialize_speech_recognition = function () {
@@ -53,6 +52,7 @@ function AudioRecognizer() {
         this.speech_recognition.status = true
         this.speech_recognition.continuous = true;
         this.speech_recognition.interimResults = true;
+        this.speech_recognition.lang = 'cmn-Hant-TW';
     };
 
     //讀取語音辨識的結果文字
