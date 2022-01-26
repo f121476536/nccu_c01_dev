@@ -17,6 +17,14 @@
             <function_name>GetEmotionAPIResult</function_name>
             <file_name>emotion-result.js</file_name>
         </emotion_result_js>
+        <audio_anwser_js>
+            <function_name>get_audio_anwser</function_name>
+            <file_name>audio-anwser-result.js</file_name>
+        </audio_anwser_js>
+        <audio_text>
+            <from_dir>C:\Users\user\Downloads</from_dir>
+            <to_dir>audio-recognition</to_dir>
+        </audio_text>
         <account_cache>
             <file_name>account_cache.txt</file_name>
         </account_cache>

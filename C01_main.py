@@ -1,596 +1,739 @@
+from linecache import cache
+from prompt_toolkit import application
 import requests
 import json
 import time
 import datetime
 import os
-import xml.etree.ElementTree as ET
-import cv2
 import math
+import base64
+from requests.api import post
+import xml.etree.ElementTree as ET
+from dataclasses import Field, dataclass, field
+from enum import Enum, auto
+from abc import abstractmethod, ABCMeta
+from typing import List, Dict
+from enum import Enum, auto
+import time
+import sys
+import cv2
 import numpy
 from PIL import Image, ImageDraw, ImageFont
-import base64
-
-from requests.api import post
-
-# 從XML設定檔案中，讀取對內本地目錄以及對外API參數
+import shutil
 
 
-class XMLConfig():
-    def __init__(self):
+@dataclass
+class DirController:
+    # 定義該程式所需要用到的檔案及路徑
+    current_dir: str = '/'.join(os.path.abspath(__file__).split('\\')[:-1])
+    c01_config_file: str = current_dir + '/' + 'c01_config.xml'
 
-        # to_local
-        self.c01_api_ip = ''
-        self.c01_api_port = ''
-        self.c01_camera_save_pic = ''
-        self.c01_camera_save_done_pic = ''
-        self.c01_lib_file_dir = ''
-        self.run_chrome_file_dir = ''
-        self.run_chrome_prs_page = ''
-        self.run_chrome_para_usr = ''
-        self.run_chrome_start_page = ''
-        self.usr_lib_account_cache_dir = ''
-        self.usr_lib_account_cache = ''
-        self.usrinfo_js_file_dir = ''
-        self.prsresult_js_file_dir = ''
-        self.emotion_result_js_file_dir = ''
-        self.usr_pic_file_dir = ''
 
-        # to_server
-        self.alma_api_protocol = ''
-        self.alma_api_address = ''
-        self.alma_api_name = ''
-        self.alma_api_version = ''
-        self.alma_api_key = ''
-        self.alma_api_response_format = ''
-        self.get_PRS_list_address = ''
-        self.get_PRS_list_port = ''
-        self.get_PRS_list_routing = ''
-        self.get_user_emotion_pic_address = ''
-        self.get_user_emotion_pic_port = ''
-        self.get_user_emotion_pic_routing = ''
+class EventListener:
+    def __init__(self) -> None:
+        pass
 
-    # 透過卡片內碼(_code)，組成Alma查詢讀者API，進而查找讀者身分
-    def get_alma_searching_user_API(self, _code):
-        return '{}://{}/{}/{}/users?limit=50&q=identifiers~{}&apikey={}&format={}'.format(self.alma_api_protocol, self.alma_api_address, self.alma_api_name, self.alma_api_version, _code, self.alma_api_key, self.alma_api_response_format)
+    def exit_app(self, error_message: str) -> None:
+        sys.exit(error_message)
 
-    def get_PRS_list_API(self, _suffix):
-        return '{}:{}{}'.format(self.get_PRS_list_address, self.get_PRS_list_port, self.get_PRS_list_routing + _suffix)
 
-    def get_user_emotion_pic_API(self):
-        return '{}:{}{}'.format(self.get_user_emotion_pic_address, self.get_user_emotion_pic_port, self.get_user_emotion_pic_routing)
+class XMLParser:
+    def __init__(self) -> None:
+        self.root: ET = None
 
-    def get_run_chrome_cmd(self):
-        return '"{}" --app={} --user-data-dir={} --start-fullscreen'.format(self.run_chrome_file_dir, self.run_chrome_prs_page, self.run_chrome_para_usr)
+    # 建立confing，讀取三層架構
+    def create_config_map(self) -> Dict[str, str]:
+        self.load_xml_file()
+        config_map = {}
+        for endpoint in self.root:
+            for tag in endpoint:
+                for sub_tag in tag:
+                    xml_directory = '_'.join(
+                        [endpoint.tag, tag.tag, sub_tag.tag])
+                    config_map[xml_directory] = sub_tag.text
+        return config_map
 
-    # ALMA讀者帳號快取
-    def load_usr_cache(self):
-        if(not os.path.exists(self.usr_lib_account_cache_dir)):
-            with open(self.usr_lib_account_cache_dir, 'a', encoding="utf-8") as f:
-                f.write('{}')
+    # 從指定xml檔案中讀取內容
+    def load_xml_file(self) -> None:
+        self.root = ET.parse(DirController().c01_config_file).getroot()
 
-        # 讀取過去登入過的帳號資訊
-        with open(self.usr_lib_account_cache_dir, 'r', encoding="utf-8") as f:
+
+class RobotConfig:
+    def __init__(self) -> None:
+        self.robot_config_map = XMLParser().create_config_map()
+        self.current_dir = DirController().current_dir
+
+    def get_local_lib_dir(self) -> str:
+        local_lib_dir = self.robot_config_map['to_local_c01_lib_lib_dir']
+        return f'{self.current_dir}/{local_lib_dir}'
+
+    def get_static_dir(self) -> str:
+        local_lib_dir = self.get_local_lib_dir()
+        static_dir = self.robot_config_map['to_local_c01_lib_static_dir']
+        return f'{local_lib_dir}/{static_dir}'
+
+    def get_account_cache_dir(self) -> str:
+        lib_dir = self.get_local_lib_dir()
+        file_name = self.robot_config_map['to_local_account_cache_file_name']
+        return f'{lib_dir}/{file_name}'
+
+    # 取得機器人和ROS內部通訊用的API
+    def get_ros_api(self) -> str:
+        protocol = self.robot_config_map['to_ros_robot_api_protocol']
+        ip = self.robot_config_map['to_ros_robot_api_ip']
+        port = self.robot_config_map['to_ros_robot_api_port']
+        route = self.robot_config_map['to_ros_robot_api_route']
+        option1 = self.robot_config_map['to_ros_robot_api_option1']
+        return f'{protocol}://{ip}:{port}/{route}/{option1}'
+
+    # 取得ALMA查找User的API
+    def get_alma_api(self, card_internal_code: str) -> str:
+        protocol = self.robot_config_map['to_server_alma_api_protocol']
+        address = self.robot_config_map['to_server_alma_api_address']
+        name = self.robot_config_map['to_server_alma_api_name']
+        version = self.robot_config_map['to_server_alma_api_version']
+        key = self.robot_config_map['to_server_alma_api_key']
+        response_format = self.robot_config_map['to_server_alma_api_response_format']
+        return f'{protocol}://{address}/{name}/{version}/users?limit=50&q=identifiers~{card_internal_code}&apikey={key}&format={response_format}'
+
+    # 取得PRS查找推薦清單的API
+    def get_prs_api(self, user_account: str) -> str:
+        address = self.robot_config_map['to_server_get_PRS_list_address']
+        port = self.robot_config_map['to_server_get_PRS_list_port']
+        version = self.robot_config_map['to_server_get_PRS_list_version']
+        routing = self.robot_config_map['to_server_get_PRS_list_routing']
+        return f'{address}:{port}/{version}/{routing}/{user_account}'
+
+    # 取得讀者情緒辨識的API
+    def get_face_emtion_api(self) -> str:
+        address = self.robot_config_map['to_server_emotion_api_address']
+        port = self.robot_config_map['to_server_emotion_api_port']
+        version = self.robot_config_map['to_server_emotion_api_version']
+        routing = self.robot_config_map['to_server_emotion_api_routing']
+        return f'{address}:{port}/{version}/{routing}'
+
+    # 取得問答系統的API
+    def get_question_answer_api(self) -> str:
+        address = self.robot_config_map['to_server_qa_api_address']
+        port = self.robot_config_map['to_server_qa_api_port']
+        version = self.robot_config_map['to_server_qa_api_version']
+        routing = self.robot_config_map['to_server_qa_api_routing']
+        return f'{address}:{port}/{version}/{routing}'
+
+    # 取得語音檔儲存的來源目錄位置
+    def get_audio_text_from_dir(self) -> str:
+        from_dir = self.robot_config_map['to_local_audio_text_from_dir']
+        return from_dir
+
+    # 取得語音檔儲存的目的目錄位置
+    def get_audio_text_to_dir(self) -> str:
+        lib_dir = self.get_local_lib_dir()
+        to_dir = self.robot_config_map['to_local_audio_text_to_dir']
+        return f'{lib_dir}\{to_dir}'
+
+
+class WebTransferHandler:
+    # 取得連線Header設置
+    def get_url_header(self) -> Dict[str, str]:
+        header = {
+            'Content-type': 'application/x-www-form-urlencoded',
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'}
+        return header
+
+    # 取得機器人Body格式設置
+    def get_url_body(self, event: Dict[str, str]) -> Dict[str, str]:
+        api_time = str(datetime.datetime.today().strftime(
+            '%Y-%m-%dT%H:%M:%SZ'))
+        api_request_id = 'REQ' + \
+            str(datetime.datetime.today().strftime('%Y%m%d%H%M'))
+        body = {**{"time": api_time, "requestId": api_request_id}, **event}
+        body = {'paraString': json.dumps(body, sort_keys=True, indent=1)}
+        return body
+
+    # 發出Post請求
+    def send_post(self, url: str, header: Dict[str, str], data: Dict[str, str]):
+        r = requests.post(url, headers=header, data=data, verify=False)
+        if(r.status_code == 200):
+            return r.json()
+        else:
+            EventListener().exit_app('Post sending error has occurred.')
+
+
+class RobotCamara:
+    def __init__(self) -> None:
+        self.config: RobotConfig = RobotConfig()
+        self.life: bool = True
+        self.height: int = 0
+        self.width: int = 0
+        self.frame: numpy.ndarray = None
+        self.window_name: str = 'webcam window'
+        self.camera_save_dir: str = self.get_camera_save_dir()
+        self.font_face: str = "Font/simsun.ttc"
+        self.guide_text: str = '請依照指示位置並點擊螢幕進行拍攝'
+
+    # 取得儲存使用者照片目錄
+    def get_camera_save_dir(self) -> str:
+        lib_dir = self.config.get_local_lib_dir()
+        pic_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        camera_save_dir = f'{lib_dir}/{pic_dir}'
+        return camera_save_dir
+
+    # 開啟拍攝鏡頭
+    def activate_shooting_window(self) -> None:
+        len = self.select_equipment()
+        cv2.namedWindow(self.window_name)
+        self.height, self.width = self.get_frame_height_and_width(len)
+        cv2.setMouseCallback(self.window_name, self.click_action_event, None)
+
+        while(self.life):
+            ret, self.frame = len.read()
+            self.set_silhouette()
+            cv2.imshow(self.window_name, self.frame)
+            # 按下ECS可以離開畫面
+            k = cv2.waitKey(1)
+            if k == 27:
+                break
+        len.release()
+        cv2.destroyAllWindows()
+
+    # 拍攝裝置選擇
+    def select_equipment(self) -> cv2.VideoCapture:
+        len = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        return len
+
+    # 取得畫面框的長寬
+    def get_frame_height_and_width(self, len: cv2.VideoCapture) -> int:
+        ret, frame = len.read()
+        height, width, pixels = frame.shape
+        return height, width
+
+    # 掛載滑鼠點擊事件
+    def click_action_event(self, event, x, y, flags, param) -> None:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            pic_name = str(
+                datetime.datetime.today().strftime('%Y%m%d%H%M%S%f'))
+            cv2.imwrite(self.camera_save_dir + '/' +
+                        pic_name + '.png', self.frame)
+            self.life = False
+
+    # 顯示拍攝時的說明文字、人形引導
+    def set_silhouette(self) -> None:
+        # 文字說明
+        YELLOW = (255, 255, 0)
+        left = 50
+        top = 30
+        text_size = 32
+        self.show_text_on_frame(self.guide_text, left, top, YELLOW, text_size)
+
+        # 畫人形
+        center_point = (int(self.width / 2), int(self.height / 2))
+        radius = 100
+        GREEN = (0, 176, 80)
+        thickness = 3
+        cv2.circle(self.frame, center_point, radius, GREEN, thickness)
+
+        # 線條
+        neck_length = 63
+        line_left_start_point = self.get_x_y_position(
+            center_point[0], center_point[1], radius, 240)
+        line_left_end_point = (
+            line_left_start_point[0], line_left_start_point[1] + neck_length)
+        thickness = 5
+        cv2.line(self.frame, line_left_start_point,
+                 line_left_end_point, GREEN, thickness)
+        line_right_start_point = self.get_x_y_position(
+            center_point[0], center_point[1], radius, 300)
+        line_right_end_point = (
+            line_right_start_point[0], line_right_start_point[1] + neck_length)
+        cv2.line(self.frame, line_right_start_point,
+                 line_right_end_point, GREEN, thickness)
+
+        # 圓圈
+        center_point = (center_point[0], center_point[1] + 500)
+        radius += 250
+        thickness = 3
+        cv2.circle(self.frame, center_point, radius, GREEN, thickness)
+
+    # 顯示說明文字於拍攝畫面
+    def show_text_on_frame(self, text, left, top, text_color, text_size) -> None:
+        # 判斷是否OpenCV圖片類型
+        if (isinstance(self.frame, numpy.ndarray)):
+            self.frame = Image.fromarray(
+                cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB))
+
+        draw = ImageDraw.Draw(self.frame)
+        font_text = ImageFont.truetype(
+            self.font_face, text_size, encoding="utf-8")
+        draw.text((left, top), text, text_color, font=font_text)
+        self.frame = cv2.cvtColor(numpy.asarray(self.frame), cv2.COLOR_RGB2BGR)
+
+    # 取得x,y座標
+    def get_x_y_position(self, centerX, centerY, radius, angle) -> int:
+        degree = -math.radians(angle)
+        x = (int)(centerX + radius * math.cos(degree))
+        y = (int)(centerY + radius * math.sin(degree))
+        return x, y
+
+
+class RobotFunctionality:
+    def __init__(self) -> None:
+        self.config = RobotConfig()
+        self.web_handler = WebTransferHandler()
+        self.camara = RobotCamara()
+        self.file_builder = LocalFileBuilder()
+
+    # 感應NFC卡片，讀取卡片中儲存的卡片內碼
+    def read_nfc_card(self) -> str:
+        url = self.config.get_ros_api()
+        print(f'url = {url}')
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "NFC"}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+        result_text = json.loads(result_text)
+        api_execute_result = result_text['results'][0]['result']
+
+        if(api_execute_result != '0'):
+            EventListener().exit_app('Loading card error has occurred.')
+
+        card_internal_code = result_text['results'][0]['content']
+        return card_internal_code
+
+    # 查詢卡片內碼代表的Alma帳號
+    def search_alma_account(self, card_internal_code: str) -> str:
+        url = self.config.get_alma_api(card_internal_code)
+        r = requests.get(url)
+        result_text = json.loads(r.text)
+        alma_account = [info['primary_id'] for info in result_text['user']][0]
+        return alma_account
+
+    # 操控機器人語音發聲
+    def speak_text(self, text: str) -> None:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "SPEAKER", "content": text}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 取得目前機器人的⾃⾛點位
+    def get_waypoints_list(self) -> List[str]:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start",
+                 "deviceId": "WAYPOINTLIST", "content": 'detail'}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+        waypoints_list = []
+        api_return_info = result_text['results'][0]
+        c01_api_correct_check = str(api_return_info['result'])
+        if(c01_api_correct_check == str(0)):
+            pos_info = json.loads(api_return_info['content'])
+            waypoints_list = pos_info['Waypoints']
+        else:
+            print(api_return_info['content'])
+        return waypoints_list
+
+    # 操控機器人前往某一個點位
+    def go_to_waypoint(self, waypoint: str) -> None:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start",
+                 "deviceId": "NAVIGATION", "content": waypoint}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 操控機器人返回充電站
+    def back_to_dock(self) -> None:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "BACKTODOCK"}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 操控機器人手部動作
+    def change_arm_movement(self, mode: int) -> None:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "ROBOTARMCONTROL",
+                 "content": f'arm/{str(mode)}'}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 操控機器人脖子動作
+    def change_neck_movement(self, direction: int, rotation: int):
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "ROBOTNECKMOVE",
+                 "content": f'{direction}/{rotation}'}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 操控機器人表情
+    def change_face(self, emotion: str):
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "EMOTION", "content": emotion}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+
+    # 情緒識別
+    def recognize_emotion(self, account: str) -> Dict[str, str]:
+        # 取得情緒辨識的API
+        url = self.config.get_face_emtion_api()
+        url_header = self.web_handler.get_url_header()
+
+        # 取得辨識前圖片檔案
+        lib_dir = self.config.get_local_lib_dir()
+        save_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        full_save_dir = f'{lib_dir}/{save_dir}'
+        file_name = [file for file in os.listdir(full_save_dir)][0]
+
+        # 將辨識前圖片檔案編碼後，打API做辨識
+        pic_base64 = self.file_builder.encode_pic_to_base64(
+            f'{full_save_dir}/{file_name}', account)
+        result_text = self.web_handler.send_post(url, url_header, pic_base64)
+
+        # 回傳結果的base64，將其轉回識別後圖片並儲存
+        save_done_pic = self.config.robot_config_map['to_local_c01_camera_save_done_dir']
+        done_file = f'{lib_dir}/{save_done_pic}/{file_name}'
+        self.file_builder.decode_base64_to_pic(
+            done_file, result_text['usr_face_recogni_pic'])
+        result_text['usr_face_recogni_pic'] = done_file
+        return result_text
+
+    def call_qa_system(self, question: str) -> List[str]:
+        # 取得問答系統的API
+        url = self.config.get_question_answer_api()
+        url_header = self.web_handler.get_url_header()
+        question = {'question': question}
+        result_text = self.web_handler.send_post(url, url_header, question)
+        return result_text['answer']
+
+    # 開啟麥克風
+    def activate_micphone(self):
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "start", "deviceId": "AUDIO"}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+        print(f'result_text = {result_text}')
+
+    # 關閉麥克風，並取得檔案路徑
+    def deactivate_micphone(self) -> str:
+        url = self.config.get_ros_api()
+        url_header = self.web_handler.get_url_header()
+        event = {"action": "stop", "deviceId": "AUDIO"}
+        url_body = self.web_handler.get_url_body(event)
+        result_text = self.web_handler.send_post(url, url_header, url_body)
+        record_file = result_text['results'][0]['content']
+        return record_file
+
+
+@dataclass
+class RobotFace:
+    ANGRY: str = 'Angry'
+    CHARGING: str = 'Charging'
+    DOUBT: str = 'Doubt'
+    EXCITED: str = 'Excited'
+    HAPPY: str = 'Happy'
+    LOVE: str = 'Love'
+    NORMAL: str = 'Normal'
+    SAD: str = 'Sad'
+    SLEEPY: str = 'Sleepy'
+
+
+@dataclass
+class RobotArm:
+    NO: int = 1
+    OK: int = 2
+    HERE: int = 3
+    LOOKFOR: int = 4
+    NOTSURE: int = 5
+    GOSTRAIGHT: int = 6
+    HAPPY: int = 7
+    DRUMMING: int = 8
+    HI_1: int = 9
+    HI_2: int = 10
+    NOTSURETOHELP: int = 11
+    PLEASEWAIT: int = 12
+    GOANDTRUN: int = 13
+    BYE_1: int = 14
+    BYE_2: int = 15
+
+
+class LocalFileBuilder:
+    def __init__(self) -> None:
+        # self.robot_config_map = XMLParser().create_config_map()
+        # function_name = self.robot_config_map['to_local_usrinfo_js_function_name']
+        # file_dir = self.robot_config_map['to_local_usrinfo_js_file_dir']
+        None
+
+    # 將新的檔案內容，儲存至JS靜態檔案
+    def save_js_static_file(self, writing_content: Dict[str, str], file_dir: str) -> None:
+        keyword = "let result = "
+        file_content = ''
+        with open(file_dir, 'r', encoding="utf-8") as f:
+            line = f.readlines()
+            for l in line:
+                try:
+                    p = l.index(keyword)
+                    file_content += l[:p] + keyword + \
+                        str(writing_content) + ';\n'
+                except Exception as e:
+                    file_content += l
+                    continue
+
+        with open(file_dir, "w", encoding="utf-8") as f:
+            f.write(file_content)
+
+    # 初始化JS靜態檔案
+    def initialize_js_static_file(self, function_name: str, file_dir: str) -> None:
+        self.delete_existing_file(file_dir)
+        content = f'function {function_name}()' + '{' + '\n'
+        content += '  let result = {};' + '\n'
+        content += '  return result' + '\n' + '}'
+
+        with open(file_dir, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    # 如果已經存在，將其刪除
+    def delete_existing_file(self, file: str) -> None:
+        if os.path.exists(file):
+            os.remove(file)
+
+    # 如果不存在，將其創建
+    def create_file_if_existing(self, file: str, content: str) -> None:
+        if not os.path.exists(file):
+            with open(file, "a", encoding="utf-8") as f:
+                f.write(content)
+
+    # 讀取快取資訊
+    def load_file_to_json(self, file: str) -> Dict[str, str]:
+        with open(file, 'r', encoding="utf-8") as f:
             line = f.readline()
-        print(line)
-        self.usr_lib_account_cache = json.loads(line)
+        account_cache = json.loads(line)
+        return account_cache
 
-    # 儲存此次新增的ALMA讀者帳號
-    def add_usr_cache(self, _code, _account):
-        self.usr_lib_account_cache[_code] = _account
-        with open(self.usr_lib_account_cache_dir, 'w', encoding="utf-8") as f:
-            f.writelines(str(self.usr_lib_account_cache).replace("'", '"'))
+    def add_account_to_cache(self, file: str, code: str, account: str) -> None:
+        account_cache = self.load_file_to_json(file)
+        account_cache[code] = account
+        content = str(account_cache).replace("'", '"')
+        with open(file, 'w', encoding="utf-8") as f:
+            f.writelines(content)
 
+    # 驗證檔案有無過期(超過一天)
+    def validate_file_date(self, file: str) -> bool:
+        file_date = time.ctime(os.path.getmtime(file))
+        file_date = datetime.datetime.strptime(
+            file_date, "%a %b %d %H:%M:%S %Y").date()
+        now_date = datetime.datetime.now().date()
+        return True if now_date > file_date else False
 
-def ParserXMLConfig(_xmldir):
-    # 從檔案載入並解析 XML 資料
-    tree = ET.parse(_xmldir)
-    root = tree.getroot()
-    xml = XMLConfig()
-    xml.c01_api_ip = root.find('to_local/c01_api/ip').text
-    xml.c01_api_port = root.find('to_local/c01_api/port').text
-    xml.c01_lib_file_dir = root.find('to_local/c01_lib/file_dir').text + '\\'
-    xml.c01_camera_save_pic = xml.c01_lib_file_dir + \
-        root.find('to_local/c01_camera/save_pic').text
-    xml.c01_camera_save_done_pic = xml.c01_lib_file_dir + \
-        root.find('to_local/c01_camera/save_done_pic').text
-    xml.run_chrome_file_dir = root.find('to_local/run_chrome/file_dir').text
-    xml.run_chrome_prs_page = root.find('to_local/run_chrome/prs_page').text
-    xml.run_chrome_para_usr = xml.c01_lib_file_dir + \
-        root.find('to_local/run_chrome/para_usr').text
-    xml.run_chrome_start_page = root.find(
-        'to_local/run_chrome/start_page').text
-    xml.usr_lib_account_cache_dir = xml.c01_lib_file_dir + \
-        root.find('to_local/lib_account/file_dir').text
-    xml.usrinfo_js_file_dir = xml.c01_lib_file_dir + \
-        root.find('to_local/usrinfo_js/file_dir').text
-    xml.prsresult_js_file_dir = xml.c01_lib_file_dir + \
-        root.find('to_local/prsresult_js/file_dir').text
-    xml.emotion_result_js_file_dir = xml.c01_lib_file_dir + \
-        root.find('to_local/emotion_result_js/file_dir').text
-    xml.usr_pic_file_dir = xml.c01_lib_file_dir + \
-        root.find('to_local/usr_pic/file_dir').text
-    xml.alma_api_protocol = root.find('to_server/alma_api/protocol').text
-    xml.alma_api_address = root.find('to_server/alma_api/address').text
-    xml.alma_api_name = root.find('to_server/alma_api/name').text
-    xml.alma_api_version = root.find('to_server/alma_api/version').text
-    xml.alma_api_key = root.find('to_server/alma_api/key').text
-    xml.alma_api_response_format = root.find(
-        'to_server/alma_api/response_format').text
-    xml.get_PRS_list_address = root.find('to_server/get_PRS_list/address').text
-    xml.get_PRS_list_port = root.find('to_server/get_PRS_list/port').text
-    xml.get_PRS_list_routing = root.find('to_server/get_PRS_list/routing').text
-    xml.get_user_emotion_pic_address = root.find(
-        'to_server/get_user_emotion_pic/address').text
-    xml.get_user_emotion_pic_port = root.find('to_server/get_user_emotion_pic/port').text
-    xml.get_user_emotion_pic_routing = root.find('to_server/get_user_emotion_pic/routing').text
-    return xml
+    # 圖片編碼成base64
+    def encode_pic_to_base64(self, img_path, usr_acc):
+        with open(img_path, 'rb') as f:
+            image_data = f.read()
+            return {'usr_acc': usr_acc, 'base64_data': str(base64.b64encode(image_data), 'utf-8')}
+
+    # base64解碼成圖片
+    def decode_base64_to_pic(self, img_path, base64_data):
+        with open(img_path, 'wb') as file:
+            jiema = base64.b64decode(base64_data)
+            file.write(jiema)
+
+    # 移動檔案到指定位置
+    def move_file(self, from_dir: str, to_dir: str, file_name: str) -> None:
+        source = f'{from_dir}\{file_name}'
+        destination = f'{to_dir}\{file_name}'
+        shutil.move(source, destination)
 
 
-def TransferToAlmaAccount(_alma_user_url):
-    # 如果沒有內碼，就直接回傳Error
-    UserAccount = 'Found Error'
-    # 透過使用者的卡片內碼，組成查詢user的Alma api url
-    # print(_alma_user_url)
-    r = requests.get(_alma_user_url)
+class RobotService:
+    def __init__(self) -> None:
+        self.robot_function = RobotFunctionality()
+        self.file_builder = LocalFileBuilder()
+        self.config = RobotConfig()
+        self.text_processer = TextProcesser()
 
-    # 解析Alma API回傳的讀者資訊
-    TotalInfo = json.loads(r.text)
-    ReaderArr = []
-    for Info in TotalInfo['user']:
-        DicExsist = Info.get('last_name', False)
-        if(not DicExsist):
-            Name = Info['first_name']
+    # 識別讀者
+    def identify_reader(self) -> str:
+        card_internal_code = self.robot_function.read_nfc_card()
+
+        # 快取機制
+        cache_file = self.config.get_account_cache_dir()
+        self.file_builder.create_file_if_existing(cache_file, '{}')
+        validate = self.file_builder.validate_file_date(cache_file)
+        if(validate):
+            account_cache = self.file_builder.load_file_to_json(cache_file)
+            alma_account = account_cache.get(card_internal_code)
+
+            if(alma_account == None):
+                alma_account = self.robot_function.search_alma_account(
+                    card_internal_code)
         else:
-            Name = Info['last_name']
-        ReaderArr.append(Info['primary_id'])
-    UserAccount = ReaderArr[0]
+            self.file_builder.delete_existing_file(cache_file)
+            self.file_builder.create_file_if_existing(cache_file, '{}')
+            alma_account = self.robot_function.search_alma_account(
+                card_internal_code)
+        self.file_builder.add_account_to_cache(
+            cache_file, card_internal_code, alma_account)
 
-    return UserAccount
+        return alma_account
 
-# 設置c01的web server
-# option, 0 = Device, 1 = Reboot, 2 = Shutdown
+    # 紀錄讀者帳號跟讀者登入時間
+    def record_user_login_info(self, alma_account: str) -> None:
+        login_time = str(datetime.datetime.today().strftime('%Y%m%d%H%M%S'))
+        content = {'user_account': alma_account, 'login_time': login_time}
 
+        # 儲存成JS靜態檔案
+        static_dir = self.config.get_static_dir()
+        file_name = self.config.robot_config_map['to_local_usrinfo_js_file_name']
+        file_dir = f'{static_dir}/{file_name}'
+        function_name = self.config.robot_config_map['to_local_usrinfo_js_function_name']
+        self.file_builder.initialize_js_static_file(function_name, file_dir)
+        self.file_builder.save_js_static_file(content, file_dir)
 
-def SetURL(_ip, _port, _option):
-    option = "ErrorMsg: plz enter correct option number!"
-    if(_option == 0):
-        option = 'Device'
-    elif(_option == 1):
-        option = 'Reboot'
-    elif(_option == 2):
-        option = 'Shutdown'
-    else:
-        return option
-    return 'http://{}:{}/GeosatRobot/api/{}'.format(_ip, _port, option)
+    # 進行讀者表情拍攝
+    def take_user_photo(self, account: str) -> None:
+        # 刪除上次的照片檔案
+        lib_dir = self.config.get_local_lib_dir()
+        pic_dir = self.config.robot_config_map['to_local_c01_camera_save_dir']
+        file_list = [file for file in os.listdir(f'{lib_dir}/{pic_dir}')]
+        if(len(file_list) != 0):
+            self.file_builder.delete_existing_file(
+                f'{lib_dir}/{pic_dir}/{file_list[0]}')
+        self.robot_function.camara.activate_shooting_window()
 
-# 設定post的header
+        # 將情緒辨識後的內容進行重組
+        api_result = self.robot_function.recognize_emotion(account)
+        content = {}
+        content['emotion'] = api_result['emotion_tag']
+        content['img_dir'] = api_result['usr_face_recogni_pic']
 
+        # 儲存成JS靜態檔案
+        static_dir = self.config.get_static_dir()
+        file_name = self.config.robot_config_map['to_local_emotion_result_js_file_name']
+        file_dir = f'{static_dir}/{file_name}'
+        function_name = self.config.robot_config_map['to_local_usrinfo_js_function_name']
+        self.file_builder.initialize_js_static_file(function_name, file_dir)
+        self.file_builder.save_js_static_file(content, file_dir)
 
-def SetURLHeader():
-    headers = {
-        'Content-type': 'application/x-www-form-urlencoded',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive'}
-    return headers
+    # 顯示視覺化介面
+    def show_user_interface(self) -> None:
+        current_dir = DirController().current_dir
+        file_dir = self.config.robot_config_map['to_local_run_chrome_file_dir']
+        prs_file = self.config.robot_config_map['to_local_run_chrome_prs_file']
+        prs_dir = f'{current_dir}/{prs_file}'
+        para_dir_name = self.config.robot_config_map['to_local_run_chrome_para_dir_name']
+        lib_dir = self.config.get_local_lib_dir()
+        para_dir = f'{lib_dir}/{para_dir_name}'
+        cmd = f'"{file_dir}" --app={prs_dir} --user-data-dir={para_dir} --start-fullscreen'
+        print(f'cmd = {cmd}')
+        os.system(cmd)
 
-# 設定post的body
+    def consult_question(self) -> None:
+        # 將語音辨識後的文字檔案移動至指定目錄
+        from_dir = self.config.get_audio_text_from_dir()
+        to_dir = self.config.get_audio_text_to_dir()
+        audio_file = 'audio_text.txt'
 
+        exist_flag = False
+        while(not exist_flag):
+            time.sleep(1)
+            exist_flag = os.path.exists(f'{from_dir}/{audio_file}')
+        self.file_builder.move_file(from_dir, to_dir, audio_file)
 
-def SetURLBody(_eventDic):
-    APITime = str(datetime.datetime.today().strftime('%Y-%m-%dT%H:%M:%SZ'))
-    APIRequestId = 'REQ' + \
-        str(datetime.datetime.today().strftime('%Y%m%d%H%M'))
-    Str = MergeTwoDicts(
-        {"time": APITime, "requestId": APIRequestId}, _eventDic)
-    paraString = json.dumps(Str, sort_keys=True, indent=1)
-    data = {'paraString': paraString}
-    return data
+        # 讀取語音辨識後的文字內容
+        with open(f'{to_dir}/{audio_file}', 'r', encoding="utf-8-sig") as f:
+            question = f.readline()
 
-# 合併兩個字典
+        # 呼叫問答系統的API，取得該問題的答案
+        answer = self.robot_function.call_qa_system(question)
+        word = "<br>".join(answer)
 
+        # 若有超連結，將其組成<a></a>格式
+        word = self.text_processer.add_a_tag_to_string(word)
 
-def MergeTwoDicts(_dic1, _dic2):
-    for d in _dic2:
-        _dic1[d] = _dic2[d]
-    return _dic1
+        # 儲存成JS靜態檔案
+        content = {'word': word}
+        static_dir = self.config.get_static_dir()
+        file_name = self.config.robot_config_map['to_local_audio_anwser_js_file_name']
+        file_dir = f'{static_dir}/{file_name}'
+        function_name = self.config.robot_config_map['to_local_audio_anwser_js_function_name']
+        self.file_builder.initialize_js_static_file(function_name, file_dir)
+        self.file_builder.save_js_static_file(content, file_dir)
+        
+        # 機器人反應
+        time.sleep(5)
+        answer = answer[len(answer)-1]
+        self.robot_function.speak_text(answer)
+        self.robot_function.change_face(RobotFace.EXCITED)
+        self.robot_function.change_arm_movement(RobotArm.LOOKFOR)
+        
+class TextProcesser():
+    def find_char_position_in_string(self, string: str, char: str) -> List[int]:
+        position = []
+        n = 0
+        while(n != -1):
+            n = string.find(char, n + 1)
+            if(n != -1):
+                position.append(n)
+        return position
 
-
-# 實際作發送post的動作
-def SendPostToURL(_url, _header, _data):
-    r = requests.post(_url, headers=_header, data=_data, verify=False)
-    return r.status_code, r.json()
-
-def ReadNFCCard():
-    dic = {"action":"start","deviceId":"NFC"}
-    return dic
-
-def ParseAPIResult(_post_sc, _post_text):
-    if(_post_sc == 200):
-        APIResult = json.loads(_post_text)
-        api_sc = APIResult['results'][0]['result']
-        api_text = APIResult['results'][0]['content']
-        if(api_sc == '0'):
-            return api_text
+    def add_a_tag_to_string(self, string: str):
+        start_tag = '<a>'
+        end_tag = '</a>'
+        start_tag_position = self.find_char_position_in_string(
+            string, start_tag)
+        end_tag_position = self.find_char_position_in_string(string, end_tag)
+        tag_num = len(start_tag_position)
+        replace_ele = {}
+        if(tag_num != len(end_tag_position)):
+            raise ValueError("<a>與</a>的數量不一致!")
         else:
-            print('API returns fail response: "' + api_text + '"')
-    else: 
-        print('Sending post request fail, error code:' + str(_post_sc))
+            for i in range(0, tag_num):
+                sub_string = string[start_tag_position[i] +
+                                    len(start_tag):end_tag_position[i] - 1]
+                sub_string_list = sub_string.split('(')
+                link_word = sub_string_list[0]
+                link_url = sub_string_list[1]
+                replace_ele[f'{start_tag + sub_string}' + ')' +
+                            f'{end_tag}'] = f'<a href="{link_url}">{link_word}</a>'
 
-def CallResfulAPI(_url):
-    # 先組成API Server的URL
-    r = requests.get(_url)
-    return r.text.replace('\n','').replace('  ','').replace(' ','')
-
-def UpdateToJS(_file, _emotion): 
-    # 讀取舊的檔案內容，並更新emotion的值
-    content = ''
-    with open(_file, 'r', encoding="utf-8") as f:
-        line = f.readlines()
-        for l in line:
-            try:
-                # str.index如果找不到目標字串，就會直接報錯
-                keyword = "let result = "
-                p = l.index(keyword)
-                content += l[:p] + keyword + _emotion + ';\n'
-            except Exception as e:
-                content += l
-                continue
-
-    # 將新內容儲存至檔案當中
-    with open(_file, "w",encoding="utf-8") as f:
-        f.write(content)
-
-def ShowTextOnCamera(img, text, left, top, textColor, textSize):
-    if (isinstance(img, numpy.ndarray)):  #判斷是否OpenCV圖片類型
-        img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(img)
-    
-    fontFace = "Font/simsun.ttc"
-    fontText = ImageFont.truetype(
-        fontFace, textSize, encoding="utf-8")
-    draw.text((left, top), text, textColor, font=fontText)
-    return cv2.cvtColor(numpy.asarray(img), cv2.COLOR_RGB2BGR)
+        for key in replace_ele:
+            value = replace_ele[key]
+            string = string.replace(key, value)
+        return string
 
 
-def GetXYPosition(_centerX, _centerY, _radius, _angle):
-    degree = -math.radians(_angle)
-    x = (int) (_centerX + _radius * math.cos(degree))
-    y = (int) (_centerY + _radius * math.sin(degree))
-    return x, y
-    
-def SetSilhouette(_frame, _height, _width):
-    
-    # 文字
-    color_rgb = (255, 255, 0)
-    text = '請依照指示位置並點擊螢幕進行拍攝'
-    _frame = ShowTextOnCamera(_frame, text, 50, 30, color_rgb, 32)
-
-    # 畫人形
-    radius = 100
-    color_rgb = (0, 176, 80)
-    center_point = (int(_width/2), int(_height/2))
-    # 圓圈，圓心座標, 半徑, 顏色, 線條寬度
-    cv2.circle(_frame, center_point, radius, color_rgb, 3)
-    
-    # 線條
-    neck_length = 63
-    line_left_start_point = GetXYPosition(center_point[0], center_point[1], radius, 240)
-    line_left_end_point = (line_left_start_point[0], line_left_start_point[1]+neck_length)
-    cv2.line(_frame, line_left_start_point, line_left_end_point, color_rgb, 5)
-
-    line_right_start_point = GetXYPosition(center_point[0], center_point[1], radius, 300)
-    line_right_end_point = (line_right_start_point[0], line_right_start_point[1]+neck_length)    
-    cv2.line(_frame, line_right_start_point, line_right_end_point, color_rgb, 5)
-
-    # 圓圈
-    center_point = (center_point[0], center_point[1]+500)
-    radius += 250
-    cv2.circle(_frame, center_point, radius, color_rgb, 3)
-    
-    return _frame
-
-def EncodePicToBase64(_img_path, _usr_acc):
-    with open(_img_path, 'rb') as f:
-        image_data = f.read()
-        return {'usr_acc': _usr_acc, 'base64_data': str(base64.b64encode(image_data),'utf-8')}
-            
-def FlashOnCamera(_frame):
-    cv2.rectangle(_frame, (10,10), (20,20), (0,255,0), 2)
-    return _frame
-
-def ClickOnMouseAction(event, x, y, flags, param):  
-    if event == cv2.EVENT_LBUTTONDOWN: 
-        # 回傳目前使用者拍的照片的full dir
-        pic_dir = param.c01_camera_save_dir
-        pic_name = str(datetime.datetime.today().strftime('%Y%m%d%H%M%S%f'))
-        global current_usr_pic
-        current_usr_pic = pic_dir + '\\' + pic_name + '.png'
-        cv2.imwrite(current_usr_pic, frame)
-
-        # 關閉拍攝程式
-        global program_life
-        program_life = False
-    
-
-def ClearFolder(_dir):    
-    # 在拍照之前，先清除資料夾內過去的照片
-    dirlist = os.listdir(_dir)
-    for f in dirlist:
-        # print(f)
-        os.remove(_dir + '\\' + f)
-
-class C01Camera():
-    def __init__(self, c01_camera_save_dir, c01_camera_frame):
-        self.c01_camera_save_dir = c01_camera_save_dir
-        self.c01_camera_frame = c01_camera_frame
-
-def DecodeBase64ToPic(_pic_file, _base64_data):
-    with open(_pic_file, 'wb') as file:
-        jiema = base64.b64decode(_base64_data)  # 解碼
-        file.write(jiema) 
-
-#取得目前機器人的即時點位
-def get_robot_current_position(_c01_api_url, _header):
-    event = {"action": "start", "deviceId": "CURRENTPOSE"}
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    c01_api_correct_check = api_return_info['result']
-    if(c01_api_correct_check==0):
-        pos_info = json.loads(api_return_info['content'])
-        print('CurrentPose = ', pos_info['CurrentPose'])
-        print('RobotPose = ', pos_info['RobotPose'])
-    else:
-        print(api_return_info['content'])
-
-#操控機器人語音發聲
-def control_robot_speak_text(_c01_api_url, _header, _text):
-    event = {"action": "start", "deviceId": "SPEAKER", "content": _text}
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-
-#取得目前機器人的⾃⾛點位
-def get_robot_waypoints_list(_c01_api_url, _header):
-    waypoints_list = []
-    event = {"action": "start", "deviceId": "WAYPOINTLIST", "content": 'detail'}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    c01_api_correct_check = str(api_return_info['result'])
-    if(c01_api_correct_check == str(0)):
-        pos_info = json.loads(api_return_info['content'])
-        waypoints_list = pos_info['Waypoints']
-    else:
-        print(api_return_info['content'])
-    return waypoints_list
-
-#操控機器人前往某一個點位
-def control_robot_go_to_waypoint(_c01_api_url, _header, _waypoint):
-    event = {"action": "start", "deviceId": "NAVIGATION", "content": _waypoint}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info)
-
-#操控機器人返回充電站
-def control_robot_back_to_dock(_c01_api_url, _header):
-    event = {"action": "start", "deviceId": "BACKTODOCK"}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info)
-    
-#操控機器人手部動作  
-def control_robot_arm_movement(_c01_api_url, _header, _mode):
-    content = 'arm/{}'.format(str(_mode))
-    event = {"action": "start", "deviceId": "ROBOTARMCONTROL", "content": content}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    #api_return_info = post_text['results'][0]
-    #print(api_return_info)
+@dataclass
+class C01Application:
+    QASYSTEM: str = 'C01-run-qa-system'
 
 
-#操控機器人脖子動作
-def control_robot_neck_movement(_c01_api_url, _header, _direction, _rotation):
-    content = "{}/{}".format(_direction, _rotation)
-    event = {"action": "start", "deviceId": "ROBOTNECKMOVE", "content": content}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))  
-    print(post_sc)
-    print(post_text)
+def prs_system() -> None:
+    robot_service = RobotService()
+    alma_account = robot_service.identify_reader()
+    robot_service.record_user_login_info(alma_account)
+    robot_service.take_user_photo(alma_account)
+    robot_service.show_user_interface()
 
-#操控機器人表情
-def control_robot_face_emotion(_c01_api_url, _header, _emotion):
-    event = {"action": "start", "deviceId": "EMOTION", "content": _emotion}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))  
-    print(post_sc)
-    print(post_text)
-
-#操控機器人自己旋轉
-
-#開啟機器人麥克風(收音)
-def control_robot_start_micphone(_c01_api_url, _header):
-    event = {"action": "start", "deviceId": "AUDIO"}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info)  
-
-#關閉機器人麥克風(收音)
-def control_robot_stop_micphone(_c01_api_url, _header):
-    event = {"action": "stop", "deviceId": "AUDIO"}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info) 
-    
-#取得目前機器人的電量資訊
-def get_robot_battery(_c01_api_url, _header):
-    event = {"action": "start", "deviceId": "BATTERY"}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info)
-
-##取得目前機器人整體狀態資訊
-def get_robot_status(_c01_api_url, _header):
-    event = {"action": "start", "deviceId": "STATUS"}  
-    post_sc, post_text = SendPostToURL(_c01_api_url, _header, SetURLBody(event))
-    api_return_info = post_text['results'][0]
-    print(api_return_info)  
-
-         
-# main
-start_time = time.time()
-print('Reading xmlconfig for c01...')
-
-# 一開始Call C01的設定檔
-main_dir = (os.path.dirname(os.path.realpath(__file__))) + '/'
-XMLconfig = ParserXMLConfig(main_dir + 'c01_config.xml')
-print('Setting c01 api header...')
-# option, 0 = Device, 1 = Reboot, 2 = Shutdown
-c01_api_url = SetURL(XMLconfig.c01_api_ip, XMLconfig.c01_api_port, 0)
-header = SetURLHeader()
+    RobotFunctionality().change_face(RobotFace.ANGRY)
+    RobotFunctionality().change_arm_movement(RobotArm.HI_1)
 
 
-'''
-# 讀卡片
-print('Reading card and mapping reader info...')
-event = ReadNFCCard()
-body = SetURLBody(event)
-post_sc, post_text = SendPostToURL(c01_api_url, header, body)
-code = ParseAPIResult(post_sc, post_text)
-print(code)
-
-if(code == '15153F67'):
-    usr_account = 'temp'
-else:  
-    # AEF8BD54
-    usr_account = TransferToAlmaAccount(XMLconfig.get_alma_searching_user_API(code))
-'''
-
-'''
-code = '15153F67'
-usr_account = 'temp'
-# 讀取圖書館帳號快取
-XMLconfig.load_usr_cache()
-usr_lib_dic = XMLconfig.usr_lib_account_cache
-if(usr_lib_dic.get(code)==None):
-    # usr_account = TransferToAlmaAccount(XMLconfig.get_alma_searching_user_API(code))
-    XMLconfig.add_usr_cache(code, usr_account)
-else:
-    usr_account = usr_lib_dic.get(code)
-'''
-
-'''
-# 把讀者帳號跟讀者登入的時間點紀錄下來
-print('Recording user info to usrinfo.js...')
-
-login_time = str(datetime.datetime.today().strftime('%Y%m%d%H%M%S'))
-userinfo = json.dumps({'user_account':usr_account, 'login_time':login_time})
-UpdateToJS(XMLconfig.usrinfo_js_file_dir, userinfo)
-
-# 取得該讀者的推薦清單(API), 將結果JSON儲存至本機
-print('Recording PRS list to prsresult.js...')
-json_txt = CallResfulAPI(XMLconfig.get_PRS_list_API(usr_account))
-# 儲存
-UpdateToJS(XMLconfig.prsresult_js_file_dir, json_txt)
-
-# 拍使用者的樣貌
-print('Taking user picture...')
-# 如果有上一次的使用者圖片，將其刪除
-current_usr_pic = ''
-ClearFolder(XMLconfig.usr_pic_file_dir)
-# 載入設定檔案，取得路徑位置
-window_name = 'webcam capture'
-# 先抓鏡頭裝置序號為0的鏡頭
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-# 先抓一幀，取得鏡頭長寬
-ret, frame = cap.read()
-height, width, pixels = frame.shape
-# 先命名視窗，接著新增該視窗的事件監測
-cv2.namedWindow(window_name)
-# 由於cv2的事件只能設定callback跟一個參數，因此將儲存路徑跟當下畫面包成物件傳入
-c01_camera = C01Camera(XMLconfig.usr_pic_file_dir, frame)
-cv2.setMouseCallback(window_name, ClickOnMouseAction, c01_camera)
-# 全域變數，開啟拍攝程式
-program_life = True
-while(program_life):
-
-    # 刷新畫面
-    ret, frame = cap.read()
-    # 設置使用者提示文字於鏡頭畫面上    
-    text_frame = SetSilhouette(frame, height, width)
-    # 將抓到的影像顯示在視窗上面
-    cv2.imshow(window_name, text_frame)
-    # 按下ECS可以離開畫面
-    k = cv2.waitKey(1)
-    if k==27:
-        break
-# flash_frame = FlashOnCamera(frame)
-# cv2.imshow(window_name, flash_frame)
-# time.sleep(2)
-cap.release()
-cv2.destroyAllWindows()
-# print(current_usr_pic)
-'''
-# usr_acc = '123591'
-# current_usr_pic = main_dir + 'usr_test.png'
-# #print(EncodePicToBase64(current_usr_pic))
-
-# #上傳使用者照片, 更新本機檔案
-# print('Uploading user image...')
-# post_status_code, post_text = SendPostToURL(XMLconfig.get_user_emotion_pic_API(), SetURLHeader(), EncodePicToBase64(current_usr_pic, usr_acc))
-# print(post_status_code)
-# print(post_text)
-# post_text = json.loads(post_text)
-
-# if(post_status_code!=200):
-#     print('Upload user picture fail.')
-# else:
-#     DecodeBase64ToPic(XMLconfig.c01_camera_save_done_pic + '\\usr_done.jpg', post_text['pic_done_file'])
-
-# #將情緒分析API回傳的結果儲存至JS file，讓前端可以讀取結果
-# usr_emotion = str({"emotion":post_text['emotion'], "img_dir":XMLconfig.c01_camera_save_done_pic + '\\usr_done.jpg'})
-# UpdateToJS(XMLconfig.emotion_result_js_file_dir, usr_emotion)
+def qa_system() -> None:
+    robot_service = RobotService()
+    robot_service.consult_question()
 
 
-# #自動打開瀏覽器(全螢幕) 顯示書單、情緒分析結果
-# print('PRS page opening...')
-# os.system(XMLconfig.get_run_chrome_cmd())
-# print(XMLconfig.get_run_chrome_cmd())
+if __name__ == "__main__":
+    #application = sys.argv[1]
+    application = C01Application.QASYSTEM
+    if(application == C01Application.QASYSTEM):
+        qa_system()
 
-
-
-#取得位置功能
-#get_robot_current_position(c01_api_url, header)
-
-#發話功能
-text = '緊急通知，圖書館雲端自動化系統索引功能異常，已緊急處理中'
-control_robot_speak_text(c01_api_url, header, text)
-
-#取得自走點
-#waypoints = get_robot_waypoints_list(c01_api_url, header)
-#print(waypoints)
-# control_robot_go_to_waypoint(c01_api_url, header, 'NAV1')
-
-#返回充電站
-#control_robot_back_to_dock(c01_api_url, header)
-
-#動作跟doc上面的對不起來，需要日後自己編碼
-#1 no /2 ok /3 here /4 look for /5 not sure /6 Go Straight /7 Happy /8 drumming /9 hi_1 /10 hi_2 /11 not sure to help /12 Please Wait /13 Go and Trun /14 bye_1 /15 bye_2
-#control_robot_arm_movement(c01_api_url, header, 1)
-
-#取得電池
-#get_robot_battery(c01_api_url, header)
-
-#取得整體狀態
-#get_robot_status(c01_api_url, header)
-
-#沒有用?
-#速度值，範圍區間爲 -20 ~ 20 正負號表⽰低頭、抬頭，數值 0 表⽰停⽌
-#速度值，範圍區間爲 -20 ~ 20 正負號表⽰逆時鐘、順時鐘⽅向旋轉，數值0 表⽰停⽌
-#direction = 5
-#rotation = 5
-#control_robot_neck_movement(c01_api_url, header, direction, rotation)
-
-#沒有用?
-#control_robot_face_emotion(c01_api_url, header, "HAPPY")
-
-#測試錄音功能
-# control_robot_start_micphone(c01_api_url, header)
-# time.sleep(5)
-# control_robot_stop_micphone(c01_api_url, header)
-
-print("\n--- {} seconds ---".format(round(time.time() - start_time,2)))
+    print('done')

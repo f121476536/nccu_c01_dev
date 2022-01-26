@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qa_system</title>
+    <!-- 引入Jquery跟Semantic UI -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="lib\semantic-ui\semantic.min.js"></script>
+    <link rel="stylesheet" href="lib\semantic-ui\semantic.min.css">
+
+    <!-- 引入app的lib-->
+    <script src=".\qa_system.js"></script>
+    <script src="lib\file_saver\file_saver.js"></script>
+
+</head>
+
+<body>
+
+    <div class="ui centered grid">
+        <div class="sixteen wide column">
+            <div class="ui inverted vertical masthead center aligned segment">
+                <div class="ui text container">
+                    <div class="ui stackable inverted divided equal height stackable grid">
+                        <div class="seven wide column">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sixteen wide column">
+            <div class="ui vertical center aligned segment">
+                <div class="ui labeled big icon buttons">
+                    <button id="start_btn" class="ui button" value="Start Speech Recognition"
+                        onclick="new AudioRecognizer().speech_to_text();">
+                        <i class="comments outline icon"></i>開始對話</button>
+                    <button id="clear_btn" class="ui button" onclick="new UIRender().clear_dialogue();">
+                        <i class="eraser icon"></i>
+                        清除對話
+                    </button>
+                    <button id="refresh_btn" class="ui button" onclick="window.location.reload();">
+                        <i class="undo icon"></i>
+                        重新整理
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="one wide column">
+            <div class="ui vertical center aligned segment">
+                <div id='audio_loading_icon' class="ui active massive inline loader" style="visibility: hidden;"></div>
+            </div>
+        </div>
+
+        <div class="ten wide column">
+            <div class="ui vertical center aligned segment">
+
+                <div class="ui fluid massive action input">
+                    <input id="resultContainer" type="text" placeholder="請說說您遇到的疑惑或問題...">
+                    <button id="ask_btn" class="ui primary massive icon button"
+                        onclick="new AnswerMaker().connect_QA_system();">
+                        <i class="search icon"></i>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="ten wide column">
+            <div class="ui icon message" id="user_speak_layout" style="visibility: hidden;">
+                <div class="content" style="text-align: right;">
+                    <div class="ui right pointing basic big label">
+                        <p id="user_speak">&nbsp</p>
+                    </div>
+                </div>
+                <img class="tiny ui image" src=".\lib\qa-system-pic\user_icon.jpg">
+            </div>
+        </div>
+
+        <div class="ten wide column">
+            <div class="ui indicating progress" data-value="1" data-total="100" id="progress_bar"
+                style="visibility: hidden;">
+                <div class="bar">
+                    <div class="progress"></div>
+                </div>
+            </div>
+
+            <div class="ui icon message" id="c01_speak_layout" style="visibility: hidden;">
+                <img class="tiny ui image" src=".\lib\qa-system-pic\c01_icon.png">
+                <div class="content">
+                    <div class="ui left pointing basic big label">
+                        <p id="c01_speak">&nbsp</p>
+                    </div>
+                </div>
+            </div>
+            <div class="ui vertical center aligned segment">
+                <button id="reset_btn" class="ui primary massive icon button" onclick="new UIRender().reset_dialogue();"
+                    style="visibility: hidden;">
+                    <i class="history icon"></i>
+                    重新對話
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最下方的footer -->
+    <div class="sixteen wide column">
+        <div class="ui inverted bottom fixed one item menu">
+            <div class="item">
+                <p>11605 臺北市文山區指南路二段64號<br>NO.64,Sec.2,ZhiNan Rd.,Wenshan District,Taipei City 11605,Taiwan
+                    (R.O.C.)<br>Tel：+886-2-2939-3091<br>© 2021 National ChengChi University All Rights Reserved.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
