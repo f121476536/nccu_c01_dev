@@ -7,17 +7,10 @@
     <title>integrated-gui</title>
 
     <!-- 引入Jquery跟Semantic UI -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="lib\semantic-ui\semantic.min.js"></script>
     <link rel="stylesheet" href="lib\semantic-ui\semantic.min.css">
-
-    <!-- 引入客服問答系統的lib-->
-    <script src=".\qa_system.js"></script>
-    <script src="lib\file_saver\file_saver.js"></script>
-
     <!-- 推廣尋書系統的lib-->
     <link rel="stylesheet" href="lib\promotion-system-lib\promotion-system.css">
-    <script src="lib\promotion-system-lib\promotion-system.js"></script>
+
 </head>
 
 <body>
@@ -37,6 +30,7 @@
     <!-- 客服問答系統對應的segment -->
     <div class="ui bottom attached tab segment" data-tab="first" style="height: 78%;">
         <div class="ui centered grid">
+            <!--功能按鈕列-->
             <div class="sixteen wide column">
                 <div class="ui vertical center aligned segment">
                     <div class="ui labeled big icon buttons">
@@ -54,12 +48,14 @@
                     </div>
                 </div>
             </div>
+            <!--語音辨識的loading icon-->
             <div class="one wide column">
                 <div class="ui vertical center aligned segment">
                     <div id='audio_loading_icon' class="ui active massive inline loader" style="visibility: hidden;">
                     </div>
                 </div>
             </div>
+            <!--詢問欄位-->
             <div class="ten wide column">
                 <div class="ui vertical center aligned segment">
                     <div class="ui fluid massive action input">
@@ -71,6 +67,7 @@
                     </div>
                 </div>
             </div>
+            <!--使用者對話區塊-->
             <div class="ten wide column">
                 <div class="ui icon message" id="user_speak_layout" style="visibility: hidden;">
                     <div class="content" style="text-align: right;">
@@ -82,12 +79,14 @@
                 </div>
             </div>
             <div class="ten wide column">
+                <!-- 進度條 -->
                 <div class="ui indicating progress" data-value="1" data-total="100" id="progress_bar"
                     style="visibility: hidden;">
                     <div class="bar">
                         <div class="progress"></div>
                     </div>
                 </div>
+                <!-- 機器人對話區塊 -->
                 <div class="ui icon message" id="c01_speak_layout" style="visibility: hidden;">
                     <img class="tiny ui image" src=".\lib\qa-system-pic\c01_icon.png">
                     <div class="content">
@@ -96,6 +95,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- 重新對話按鈕 -->
                 <div class="ui vertical center aligned segment">
                     <button id="reset_btn" class="ui primary massive icon button"
                         onclick="new UIRender().reset_dialogue();" style="visibility: hidden;">
@@ -109,36 +109,44 @@
 
     <!-- 推廣尋書系統對應的segment -->
     <div class="ui bottom attached tab segment active" data-tab="second" style="height: 78%;">
-
         <div class="ui centered grid">
-            <div class="sixteen wide column"><br></div>
+            <div class="sixteen wide column"></div>
+            <!--幻燈片-->
             <div class="sixteen wide column">
-                <div class="ui shape">
-                    <div class="sides">
-                        <div class="side active">
-                            <img class="ui huge image" src="lib\promotion-system-pic\put_the_card.png">
-                        </div>
-                        <div class="side">
-                            <img class="ui huge image" src="lib\promotion-system-pic\click_the_button.png">
-                        </div>
-                        <div class="side">
-                            <img class="ui huge image" src="lib\promotion-system-pic\take_a_picture.png">
-                        </div>
+                <div class="slideshow-container">
+                    <div class="mySlides slide-fade">
+                        <img class="ui centered massive image" src="lib\promotion-system-pic\put_the_card.png">
                     </div>
+                    <div class="mySlides slide-fade">
+                        <img class="ui centered massive image" src="lib\promotion-system-pic\click_the_button.png">
+                    </div>
+                    <div class="mySlides slide-fade">
+                        <img class="ui centered massive image" src="lib\promotion-system-pic\take_a_picture.png">
+                    </div>
+                    <a class="slide-prev" onclick="plusSlides(-1)">❮</a>
+                    <a class="slide-next" onclick="plusSlides(1)">❯</a>
+                </div>
+                <br>
+                <div style="text-align:center">
+                    <span class="dot" onclick="currentSlide(1)"></span>
+                    <span class="dot" onclick="currentSlide(2)"></span>
+                    <span class="dot" onclick="currentSlide(3)"></span>
                 </div>
             </div>
-            <div class="ten wide column">
-                <div class="ui button" onclick="test_btn();">
-                    <i class="left long arrow icon">
-                    </i>
-                </div>
+            <!--啟動按鈕-->
+            <div class="ui vertical center aligned segment">
+                <a href="c01-exe://">
+                    <div class="ui huge primary button">啟動
+                        <i class="right arrow icon"></i>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
 
     <!-- 樓層導覽系統的segment -->
-    <div class="ui bottom attached tab segment" data-tab="third" style="height: 85%;">
-        Third
+    <div class="ui bottom attached tab segment" data-tab="third" style="height: 78%;">
+        樓層導覽系統的預留空間
     </div>
 
     <!-- 最下方的footer -->
@@ -149,15 +157,22 @@
             </p>
         </div>
     </div>
+
 </body>
+
+<!-- 引入Jquery跟Semantic UI -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="lib\semantic-ui\semantic.min.js"></script>
+
+<!-- 引入客服問答系統的lib-->
+<script src=".\qa_system.js"></script>
+<script src="lib\file_saver\file_saver.js"></script>
+
+<!-- 引入推廣尋書系統的lib-->
+<script src="lib\promotion-system-lib\promotion-system.js"></script>
 
 </html>
 
 <script>
     $('.menu .item').tab();
-    function test_btn() {
-        $('.shape').shape('flip left');
-        // $('.shape').shape('flip right');
-        console.log('ggg');
-    }
 </script>

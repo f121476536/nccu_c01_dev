@@ -712,9 +712,13 @@ class TextProcesser():
 @dataclass
 class C01Application:
     QASYSTEM: str = 'C01-run-qa-system'
+    PROMOTESEARCHSYSTEM: str = "C01-run-promote-search-system"
 
+def qa_system() -> None:
+    robot_service = RobotService()
+    robot_service.consult_question()
 
-def prs_system() -> None:
+def promote_search_system() -> None:
     robot_service = RobotService()
     alma_account = robot_service.identify_reader()
     robot_service.record_user_login_info(alma_account)
@@ -724,16 +728,10 @@ def prs_system() -> None:
     RobotFunctionality().change_face(RobotFace.ANGRY)
     RobotFunctionality().change_arm_movement(RobotArm.HI_1)
 
-
-def qa_system() -> None:
-    robot_service = RobotService()
-    robot_service.consult_question()
-
-
 if __name__ == "__main__":
-    #application = sys.argv[1]
-    application = C01Application.QASYSTEM
+    application = sys.argv[1]
     if(application == C01Application.QASYSTEM):
         qa_system()
-
+    elif(application == C01Application.PROMOTESEARCHSYSTEM):
+        promote_search_system()
     print('done')
