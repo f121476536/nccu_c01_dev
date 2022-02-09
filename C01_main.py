@@ -668,10 +668,10 @@ class RobotService:
         
         # 機器人反應
         time.sleep(5)
-        answer = answer[len(answer)-1]
-        self.robot_function.speak_text(answer)
-        self.robot_function.change_face(RobotFace.EXCITED)
-        self.robot_function.change_arm_movement(RobotArm.LOOKFOR)
+        # answer = answer[len(answer)-1]
+        # self.robot_function.speak_text(answer)
+        # self.robot_function.change_face(RobotFace.EXCITED)
+        # self.robot_function.change_arm_movement(RobotArm.LOOKFOR)
         
 class TextProcesser():
     def find_char_position_in_string(self, string: str, char: str) -> List[int]:

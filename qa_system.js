@@ -142,13 +142,15 @@ function UIRender() {
     }
 
     this.hide_elemet_display = function (element_id) {
-        let element = document.getElementById(element_id);
-        element.style.visibility = 'hidden';
+        // let element = document.getElementById(element_id);
+        // element.style.visibility = 'hidden';
+        $('#' + element_id).hide();
     }
 
     this.show_elemet_display = function (element_id) {
-        let element = document.getElementById(element_id);
-        element.style.visibility = 'visible';
+        // let element = document.getElementById(element_id);
+        // element.style.visibility = 'visible';
+        $('#' + element_id).show();
     }
 
     this.show_dialogue = function () {
@@ -211,9 +213,12 @@ function UIRender() {
         elements = new ElementController();
         this.clear_input_box(elements.question_box_id);
         //隱藏對話框
-        $('#' + elements.reset_btn_id).transition('hide');
-        $('#' + elements.user_speak_layout_id).transition('hide');
-        $('#' + elements.c01_speak_layout_id).transition('hide');
+        // $('#' + elements.reset_btn_id).transition('hide');
+        // $('#' + elements.user_speak_layout_id).transition('hide');
+        // $('#' + elements.c01_speak_layout_id).transition('hide');
+        $('#' + elements.reset_btn_id).transition('fade up');
+        $('#' + elements.user_speak_layout_id).transition('fade left');
+        $('#' + elements.c01_speak_layout_id).transition('fade right');
     }
 
     this.reset_dialogue = function () {
