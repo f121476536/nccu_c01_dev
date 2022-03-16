@@ -26,7 +26,7 @@ import shutil
 class DirController:
     # 定義該程式所需要用到的檔案及路徑
     current_dir: str = '/'.join(os.path.abspath(__file__).split('\\')[:-1])
-    c01_config_file: str = current_dir + '/' + 'c01_config.xml'
+    c01_config_file: str = current_dir + '/' + 'C01_config.xml'
 
 
 class EventListener:
@@ -431,7 +431,6 @@ class RobotFunctionality:
         record_file = result_text['results'][0]['content']
         return record_file
 
-
 @dataclass
 class RobotFace:
     ANGRY: str = 'Angry'
@@ -443,7 +442,6 @@ class RobotFace:
     NORMAL: str = 'Normal'
     SAD: str = 'Sad'
     SLEEPY: str = 'Sleepy'
-
 
 @dataclass
 class RobotArm:
@@ -709,11 +707,6 @@ class TextProcesser():
         return string
 
 
-@dataclass
-class C01Application:
-    QASYSTEM: str = 'C01-run-qa-system'
-    PROMOTESEARCHSYSTEM: str = "C01-run-promote-search-system"
-
 def qa_system() -> None:
     robot_service = RobotService()
     robot_service.consult_question()
@@ -728,10 +721,15 @@ def promote_search_system() -> None:
     RobotFunctionality().change_face(RobotFace.ANGRY)
     RobotFunctionality().change_arm_movement(RobotArm.HI_1)
 
+@dataclass
+class C01Application:
+    QASYSTEM: str = 'C01-run-qa-system'
+    PROMOTIONSYSTEM: str = "C01-run-promotion-system"
+
 if __name__ == "__main__":
     application = sys.argv[1]
     if(application == C01Application.QASYSTEM):
         qa_system()
-    elif(application == C01Application.PROMOTESEARCHSYSTEM):
+    elif(application == C01Application.PROMOTIONSYSTEM):
         promote_search_system()
     print('done')

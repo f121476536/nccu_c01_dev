@@ -51,7 +51,6 @@
         </alma_api>
         <!--NCCU API Server，再取得某讀者的推薦清單-->
         <get_PRS_list>
-            <!-- <address>https://sysk8s.lib.nccu.edu.tw</address> -->
             <address>https://sysk8s.lib.nccu.edu.tw</address>
             <port>443</port>
             <version>v1</version>

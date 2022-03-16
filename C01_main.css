@@ -1,0 +1,42 @@
+
+.gridmax-grid-post-categories {
+    margin-bottom: 8px;
+    position: relative;
+    -webkit-transition: all .5s linear;
+    -o-transition: all .5s linear;
+    -moz-transition: all .5s linear;
+    transition: all .5s linear;
+    z-index: 4;
+    padding-top: 10px;
+}
+
+.gridmax-sr-only {
+    border: 0;
+    clip: rect(1px,1px,1px,1px);
+    -webkit-clip-path: inset(50%);
+    clip-path: inset(50%);
+    height: 1px;
+    width: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute !important;
+    word-wrap: normal !important;
+}
+
+.gridmax-grid-post-categories a {
+    display: inline-block;
+    color: #17181e !important;
+    background: #ffe66a !important;
+    padding: 5px 5px;
+    font: normal normal 10px 'Encode Sans Condensed',Arial,Helvetica,sans-serif;
+    line-height: 1;
+    margin: 0 3px 2px 0;
+    /*text-transform: uppercase;*/
+    letter-spacing: 0.5px;
+    -webkit-transition: all .5s linear;
+    -o-transition: all .5s linear;
+    -moz-transition: all .5s linear;
+    transition: all .2s linear;
+    text-shadow: none;
+}

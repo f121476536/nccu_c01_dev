@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C01_main</title>
+    <link rel="stylesheet" href="lib\semantic-ui\semantic.min.css">
+    <link rel="stylesheet" href="C01_main.css">
+</head>
+
+<body>
+    <!-- 最上方的tab menu -->
+    <div class="ui top attached inverted three item pointing menu">
+        <a class="item" data-tab="first">
+            <h1 class="ui white inverted header">客服問答系統</h1>
+        </a>
+        <a id="promtion-system-menu" class="item active" data-tab="second">
+            <h1 class="ui white inverted header">推廣尋書系統</h1>
+        </a>
+        <a class="item" data-tab="third">
+            <h1 class="ui white inverted header">樓層導覽系統</h1>
+        </a>
+    </div>
+
+    <!-- 客服問答系統對應的segment -->
+    <div class="ui bottom attached tab segment" data-tab="first" style="height:78vh;">
+        <div class="ui centered grid">
+
+            <!--功能按鈕列-->
+            <div class="sixteen wide column">
+                <div class="ui vertical center aligned container">
+                    <div class="ui labeled big icon buttons">
+                        <button id="start-talking-btn" class="ui button" value="Start Speech Recognition"
+                            onclick="new AudioRecognizer().speech_to_text();">
+                            <i class="comments outline icon"></i>開始對話</button>
+                        <button id="clear-talking-btn" class="ui button" onclick="new AnswerMaker().clear_dialogue();">
+                            <i class="eraser icon"></i>
+                            清除對話
+                        </button>
+                        <button class="ui button" onclick="window.location.reload();">
+                            <i class="undo icon"></i>
+                            重新整理
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!--語音辨識的loading icon-->
+            <div class="one wide column">
+                <div class="ui vertical center aligned segment">
+                    <div id='audio-loading-icon' class="ui active massive inline loader" style="visibility: hidden;">
+                    </div>
+                </div>
+            </div>
+            <!--詢問欄位-->
+            <div class="ten wide column">
+                <div class="ui vertical center aligned segment">
+                    <div class="ui fluid massive action input">
+                        <input id="question-box" type="text" placeholder="請說說您遇到的疑惑或問題...">
+                        <button id="ask-btn" class="ui primary massive icon button"
+                            onclick="new AnswerMaker().connect_QA_system();">
+                            <i class="search icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!--使用者對話區塊-->
+            <div class="ten wide column">
+                <div class="ui icon message" id="user-speak-layout" style="visibility: hidden;">
+                    <div class="content" style="text-align: right;">
+                        <div class="ui right pointing basic big label">
+                            <p id="user-speak">&nbsp</p>
+                        </div>
+                    </div>
+                    <img class="tiny ui image" src=".\lib\qa-system-pic\user_icon.jpg">
+                </div>
+            </div>
+            <div class="ten wide column">
+                <!-- 顯示進度條 -->
+                <div class="ui indicating progress" data-value="1" data-total="100" id="qa-progress-bar"
+                    style="visibility: hidden;">
+                    <div class="bar">
+                        <div class="progress"></div>
+                    </div>
+                </div>
+                <!-- 機器人對話區塊 -->
+                <div class="ui icon message" id="c01-speak-layout" style="visibility: hidden;">
+                    <img class="tiny ui image" src=".\lib\qa-system-pic\c01_icon.png">
+                    <div class="content">
+                        <div class="ui left pointing basic big label">
+                            <p id="c01-speak">&nbsp</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- 重新對話按鈕 -->
+                <div class="ui vertical center aligned segment">
+                    <button id="retalking-btn" class="ui primary massive icon button"
+                        onclick="new AnswerMaker().reset_dialogue();" style="visibility: hidden;">
+                        <i class="history icon"></i>
+                        重新對話
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推廣尋書系統對應的segment -->
+    <div class="ui bottom attached tab segment active" data-tab="second" style="height:78vh;">
+
+        <!--讀卡說明分頁、清單顯示分頁-->
+        <div class="ui three item menu" style="display: none;">
+            <a id="promotion-page1" class="item" data-tab="promotion-page1"></a>
+            <a id="promotion-page2" class="item" data-tab="promotion-page2"></a>
+            <a id="promotion-page3" class="item" data-tab="promotion-page3"></a>
+        </div>
+
+        <!--讀卡說明分頁區塊-->
+        <div class="ui bottom tab container active" data-tab="promotion-page1">
+            <!--功能按鈕列-->
+            <div class="ui vertical center aligned container">
+                <div class="ui labeled big icon buttons">
+                    <button class="ui button" onclick="new PromotionSystem().tap_in_card();">
+                        <i class="address card icon"></i>
+                        讀取卡片
+                    </button>
+                    <button class="ui button" onclick="window.location.reload();">
+                        <i class="undo icon"></i>
+                        重新整理
+                    </button>
+                </div>
+            </div>
+
+            <!--讀卡說明幻燈片-->
+            <div class="ui very padded segment">
+                <!-- 上、下一頁 -->
+                <i class="angle left bordered inverted blue link large icon"
+                    style="z-index:2; top:48%; left:1%; position:fixed;"
+                    onclick="new InstrumentSlideshow().previous_pic();"></i>
+                <i class="angle right bordered inverted blue link large icon"
+                    style="z-index:2; top:48%; right:1%; position:fixed;"
+                    onclick="new InstrumentSlideshow().next_pic();"></i>
+
+                <!-- 三個點點 -->
+                <div class="ui center aligned container" style="z-index:2; bottom:17%; position:fixed;">
+                    <i id="instrument-slideshow-dot-1" class="circle link icon"
+                        onclick="new InstrumentSlideshow().click_dot(1);"></i>
+                    <i id="instrument-slideshow-dot-2" class="circle outline link icon"
+                        onclick="new InstrumentSlideshow().click_dot(2);"></i>
+                    <i id="instrument-slideshow-dot-3" class="circle outline link icon"
+                        onclick="new InstrumentSlideshow().click_dot(3);"></i>
+                </div>
+
+                <!-- 教學文字幻燈片 -->
+                <img id="instrument-slideshow-1" class="ui massive rounded image"
+                    src="lib\instrument\pic\put_the_card.png">
+                <img id="instrument-slideshow-2" class="ui massive rounded image hidden"
+                    src="lib\instrument\pic\click_the_button.png">
+                <img id="instrument-slideshow-3" class="ui massive rounded image hidden"
+                    src="lib\instrument\pic\take_a_picture.png">
+            </div>
+
+        </div>
+
+        <!--顯示進度條-->
+        <div class="ui tab container" data-tab="promotion-page2" style="position:fixed; left:8%; top:50%;">
+            <div class="ui indicating progress" data-value="1" data-total="100" id="promotion-progress-bar"
+                style="visibility: hidden;">
+                <div class="bar">
+                    <div class="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <!--清單顯示分頁區塊-->
+        <div class="ui bottom tab container" data-tab="promotion-page3">
+            <!--功能按鈕列-->
+            <div class="ui vertical center aligned container">
+                <div class="ui big icon buttons">
+                    <button class="ui primary button" onclick="null;">
+                        <i class="street view icon"></i>
+                        帶領前往
+                    </button>
+                    <button class="ui button" onclick="new PromotionSystem().back_to_page();">
+                        <i class="sign out alternate icon"></i>
+                        返回
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- 上、下一頁 -->
+            <i class="angle left bordered inverted blue link large icon" onclick="new SidesController().slide_back();"
+                style="z-index:1; top:48%; left:1%; position:fixed;"></i>
+            <i class="angle right bordered inverted blue link large icon" onclick="new SidesController().slide_over();"
+                style="z-index:1; top:48%; right:1%; position:fixed;"></i>
+
+            <div class="ui vertical center aligned segment" style="border-bottom: none;">
+                <div class="ui text container">
+                    <h4 id="refresh-alert">目前清單正在計算中，請稍後...</h4>
+                    <div class="ui inline active loader" id="all-ready-list-reloader" style="display:none;"></div>
+                </div>
+
+                <div id="list-reloader">
+                    <div class="ui active inverted dimmer">
+                        <div class="ui large text loader">Loading</div>
+                    </div>
+                </div>
+                <div class="ui shape" id="show-recommendation-info">
+                    <div class="sides">
+                        <div class="active side" id="side-1">
+                            <div class="ui five column left aligned grid">
+                                <div id="display-1" class="row" style="height: 65vh;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side" id="side-2">
+                            <div class="ui five column left aligned grid">
+                                <div id="display-2" class="row" style="height: 65vh;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="side" id="side-3">
+                            <div class="ui five column left aligned grid">
+                                <div id="display-3" class="row" style="height: 65vh;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 樓層導覽系統的segment -->
+    <div class="ui bottom attached tab segment" data-tab="third" style="height: 78%;">
+        樓層導覽系統的預留空間
+    </div>
+
+    <!-- 最下方的footer -->
+    <div class="ui inverted bottom attached one item menu">
+        <div class="item">
+            <p>11605 臺北市文山區指南路二段64號<br>NO.64,Sec.2,ZhiNan Rd.,Wenshan District,Taipei City 11605,Taiwan
+                (R.O.C.)<br>Tel：+886-2-2939-3091<br>© 2022 National ChengChi University All Rights Reserved.
+            </p>
+        </div>
+    </div>
+
+</body>
+
+<!-- 引入Jquery跟Semantic UI -->
+<script src="lib\jquery\jquery.min.js"></script>
+<script src="lib\semantic-ui\semantic.min.js"></script>
+<script src="lib\file_saver\file_saver.js"></script>
+
+<!-- 引入系統的lib-->
+<script src=".\C01_main.js"></script>
+
+</html>
+
+<script>
+    $('.menu .item').tab();
+</script>
