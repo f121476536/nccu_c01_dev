@@ -31,10 +31,10 @@
             <div class="sixteen wide column">
                 <div class="ui vertical center aligned container">
                     <div class="ui labeled big icon buttons">
-                        <button id="start-talking-btn" class="ui button" value="Start Speech Recognition"
+                        <button id="qa-start-talking-btn" class="ui button" value="Start Speech Recognition"
                             onclick="new AudioRecognizer().speech_to_text();">
                             <i class="comments outline icon"></i>開始對話</button>
-                        <button id="clear-talking-btn" class="ui button" onclick="new AnswerMaker().clear_dialogue();">
+                        <button id="qa-clear-talking-btn" class="ui button" onclick="new AnswerMaker().clear_dialogue();">
                             <i class="eraser icon"></i>
                             清除對話
                         </button>
@@ -49,7 +49,7 @@
             <!--語音辨識的loading icon-->
             <div class="one wide column">
                 <div class="ui vertical center aligned segment">
-                    <div id='audio-loading-icon' class="ui active massive inline loader" style="visibility: hidden;">
+                    <div id='qa-audio-loading-icon' class="ui active massive inline loader" style="visibility: hidden;">
                     </div>
                 </div>
             </div>
@@ -57,9 +57,9 @@
             <div class="ten wide column">
                 <div class="ui vertical center aligned segment">
                     <div class="ui fluid massive action input">
-                        <input id="question-box" type="text" placeholder="請說說您遇到的疑惑或問題...">
-                        <button id="ask-btn" class="ui primary massive icon button"
-                            onclick="new AnswerMaker().connect_QA_system();">
+                        <input id="qa-question-box" type="text" placeholder="請說說您遇到的疑惑或問題...">
+                        <button id="qa-ask-btn" class="ui primary massive icon button"
+                            onclick="new AnswerMaker().qa_ask_question();">
                             <i class="search icon"></i>
                         </button>
                     </div>
@@ -67,10 +67,10 @@
             </div>
             <!--使用者對話區塊-->
             <div class="ten wide column">
-                <div class="ui icon message" id="user-speak-layout" style="visibility: hidden;">
+                <div class="ui icon message" id="qa-user-speak-layout" style="visibility: hidden;">
                     <div class="content" style="text-align: right;">
                         <div class="ui right pointing basic big label">
-                            <p id="user-speak">&nbsp</p>
+                            <p id="qa-user-speak">&nbsp</p>
                         </div>
                     </div>
                     <img class="tiny ui image" src=".\lib\qa-system-pic\user_icon.jpg">
@@ -85,17 +85,17 @@
                     </div>
                 </div>
                 <!-- 機器人對話區塊 -->
-                <div class="ui icon message" id="c01-speak-layout" style="visibility: hidden;">
+                <div class="ui icon message" id="qa-c01-speak-layout" style="visibility: hidden;">
                     <img class="tiny ui image" src=".\lib\qa-system-pic\c01_icon.png">
                     <div class="content">
                         <div class="ui left pointing basic big label">
-                            <p id="c01-speak">&nbsp</p>
+                            <p id="qa-c01-speak">&nbsp</p>
                         </div>
                     </div>
                 </div>
                 <!-- 重新對話按鈕 -->
                 <div class="ui vertical center aligned segment">
-                    <button id="retalking-btn" class="ui primary massive icon button"
+                    <button id="qa-retalking-btn" class="ui primary massive icon button"
                         onclick="new AnswerMaker().reset_dialogue();" style="visibility: hidden;">
                         <i class="history icon"></i>
                         重新對話
@@ -143,20 +143,20 @@
 
                 <!-- 三個點點 -->
                 <div class="ui center aligned container" style="z-index:2; bottom:17%; position:fixed;">
-                    <i id="instrument-slideshow-dot-1" class="circle link icon"
+                    <i id="promotion-instrument-slideshow-dot-1" class="circle link icon"
                         onclick="new InstrumentSlideshow().click_dot(1);"></i>
-                    <i id="instrument-slideshow-dot-2" class="circle outline link icon"
+                    <i id="promotion-instrument-slideshow-dot-2" class="circle outline link icon"
                         onclick="new InstrumentSlideshow().click_dot(2);"></i>
-                    <i id="instrument-slideshow-dot-3" class="circle outline link icon"
+                    <i id="promotion-instrument-slideshow-dot-3" class="circle outline link icon"
                         onclick="new InstrumentSlideshow().click_dot(3);"></i>
                 </div>
 
                 <!-- 教學文字幻燈片 -->
-                <img id="instrument-slideshow-1" class="ui massive rounded image"
+                <img id="promotion-instrument-slideshow-1" class="ui massive rounded image"
                     src="lib\instrument\pic\put_the_card.png">
-                <img id="instrument-slideshow-2" class="ui massive rounded image hidden"
+                <img id="promotion-instrument-slideshow-2" class="ui massive rounded image hidden"
                     src="lib\instrument\pic\click_the_button.png">
-                <img id="instrument-slideshow-3" class="ui massive rounded image hidden"
+                <img id="promotion-instrument-slideshow-3" class="ui massive rounded image hidden"
                     src="lib\instrument\pic\take_a_picture.png">
             </div>
 
@@ -197,32 +197,31 @@
 
             <div class="ui vertical center aligned segment" style="border-bottom: none;">
                 <div class="ui text container">
-                    <h4 id="refresh-alert">目前清單正在計算中，請稍後...</h4>
-                    <div class="ui inline active loader" id="all-ready-list-reloader" style="display:none;"></div>
+                    <div class="ui inline active loader" id="promotion-all-ready-reloader" style="display:none;"></div>
                 </div>
 
-                <div id="list-reloader">
+                <div id="promotion-list-reloader">
                     <div class="ui active inverted dimmer">
                         <div class="ui large text loader">Loading</div>
                     </div>
                 </div>
-                <div class="ui shape" id="show-recommendation-info">
+                <div class="ui shape" id="promotion-show-list">
                     <div class="sides">
                         <div class="active side" id="side-1">
                             <div class="ui five column left aligned grid">
-                                <div id="display-1" class="row" style="height: 65vh;">
+                                <div id="promotion-display-1" class="row" style="height: 65vh;">
                                 </div>
                             </div>
                         </div>
                         <div class="side" id="side-2">
                             <div class="ui five column left aligned grid">
-                                <div id="display-2" class="row" style="height: 65vh;">
+                                <div id="promotion-display-2" class="row" style="height: 65vh;">
                                 </div>
                             </div>
                         </div>
                         <div class="side" id="side-3">
                             <div class="ui five column left aligned grid">
-                                <div id="display-3" class="row" style="height: 65vh;">
+                                <div id="promotion-display-3" class="row" style="height: 65vh;">
                                 </div>
                             </div>
                         </div>

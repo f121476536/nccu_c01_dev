@@ -13,20 +13,20 @@ class InstrumentSlideshow {
 
     next_pic() {
         this.get_current_index();
-        this.hide_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.inactive_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.hide_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.inactive_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
         this.current_index = this.current_index == this.end_index ? this.start_index : this.current_index += 1;
-        this.show_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.active_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.show_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.active_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
     }
 
     previous_pic() {
         this.get_current_index();
-        this.hide_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.inactive_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.hide_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.inactive_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
         this.current_index = this.current_index == this.start_index ? this.end_index : this.current_index -= 1;
-        this.show_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.active_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.show_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.active_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
     }
 
     show_image(element) {
@@ -47,11 +47,11 @@ class InstrumentSlideshow {
 
     click_dot(index) {
         this.get_current_index();
-        this.hide_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.inactive_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.hide_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.inactive_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
         this.current_index = index;
-        this.show_image(`#${this.elements.INSTRUMNETSLIDESHOW}${this.current_index}`);
-        this.active_dot(`#${this.elements.INSTRUMNETDOT}${this.current_index}`);
+        this.show_image(`#${this.elements.PROMOTIONINSTRUMNETSLIDESHOW}${this.current_index}`);
+        this.active_dot(`#${this.elements.PROMOTIONINSTRUMNETDOT}${this.current_index}`);
     }
 
 }
@@ -302,21 +302,21 @@ class BookSources {
                 'color': this.colors.RED,
                 'name': '書本',
                 'message': '此標籤表示此館藏的類型為書籍',
-                'layout_row': this.element.INDEPENDENTPAGEDISPLAY1,
+                'layout_row': this.element.PROMOTIONDISPLAY1,
                 'is_top': true
             },
             'dhl_two_floors_board_game': {
                 'color': this.colors.GREEN,
                 'name': '桌遊',
                 'message': '此標籤表示此館藏的類型為桌遊',
-                'layout_row': this.element.INDEPENDENTPAGEDISPLAY2,
+                'layout_row': this.element.PROMOTIONDISPLAY2,
                 'is_top': false
             },
             'dhl_two_floors_journal': {
                 'color': this.colors.BLUE,
                 'name': '期刊',
                 'message': '此標籤表示此館藏的類型為期刊',
-                'layout_row': this.element.INDEPENDENTPAGEDISPLAY3,
+                'layout_row': this.element.PROMOTIONDISPLAY3,
                 'is_top': false
             }
         };
@@ -338,6 +338,7 @@ class PromotionSystem {
         this.source = new BookSources();
         this.static_file = new StaticFileLoader();
         this.static_file.load_api_function("userinfo-result.js");
+        this.local_program = new LocalProgramConnector();
     }
 
     get_topn_parameters() {
@@ -386,19 +387,19 @@ class PromotionSystem {
 
             this.ui.add_html(this.source.source_map[source_type]['layout_row'], cards_html);
             this.ui.resize_image(".bookcover");
-            this.ui.show_element('#' + this.elements.INDEPENDENTPAGEALLREADYLOADER);
-            this.ui.hide_element('#' + this.elements.INDEPENDENTPAGERELOADER);
-            this.ui.show_element_scaling('#' + this.elements.INDEPENDENTPAGE);
+            this.ui.show_element('#' + this.elements.PROMOTIONALLREADYLOADER);
+            this.ui.hide_element('#' + this.elements.PROMOTIONRELOADER);
+            this.ui.show_element_scaling('#' + this.elements.PROMOTIONSHOWLIST);
         }
 
         if (window.prs_call_number == (window.prs_call_max_number)) {
-            this.ui.hide_element('#' + this.elements.INDEPENDENTPAGEALLREADYLOADER);
-            this.ui.hide_element('#' + this.elements.COMMONREFRESH);
+            this.ui.hide_element('#' + this.elements.PROMOTIONALLREADYLOADER);
         }
 
     }
 
     tap_in_card() {
+        window.location.href = this.local_program.promotion_tap_in_card;
         this.ui.click_element(`#${this.elements.PROMOTIONPAGE2}`);
         $('#' + this.elements.PROMOTIONPAGEPROGRESSBAR).transition('fade up');
         var $progress = $('#' + this.elements.PROMOTIONPAGEPROGRESSBAR), $button = $(this), updateEvent;
@@ -417,7 +418,7 @@ class PromotionSystem {
                 clearInterval(window.loading_progress)
                 $('#' + this.elements.PROMOTIONPAGEPROGRESSBAR).transition('fade up');
                 let user = GetUserInfo()["user_account"];
-                promotion_system_main(user);
+                show_prs_list(user);
                 this.ui.click_element(`#${this.elements.PROMOTIONPAGE3}`);
             }
         }, 50);
@@ -434,14 +435,14 @@ class PromotionSystem {
     }
 
     back_to_page() {
-        this.ui.empty_element(`#${this.elements.INDEPENDENTPAGEDISPLAY1}`);
-        this.ui.empty_element(`#${this.elements.INDEPENDENTPAGEDISPLAY2}`)
-        this.ui.empty_element(`#${this.elements.INDEPENDENTPAGEDISPLAY3}`)
+        this.ui.empty_element(`#${this.elements.PROMOTIONDISPLAY1}`);
+        this.ui.empty_element(`#${this.elements.PROMOTIONDISPLAY2}`)
+        this.ui.empty_element(`#${this.elements.PROMOTIONDISPLAY3}`)
         this.ui.click_element(`#${this.elements.PROMOTIONPAGE1}`);
     }
 }
 
-function promotion_system_main(user) {
+function show_prs_list(user) {
     let elements = new ElementController();
     let ui = new UIRender();
 
@@ -460,47 +461,48 @@ function promotion_system_main(user) {
             web.send_request(prs_api, promtion_system);
         }
     } else {
-        ui.hide_element('#' + elements.INDEPENDENTPAGERELOADER);
+        ui.hide_element('#' + elements.PROMOTIONRELOADER);
     }
 
 }
 
 class LocalProgramConnector {
+    //對應的是機碼名稱
     constructor() {
-        this.qa_system = 'C01-run-qa-system://';
+        this.qa_ask_question = 'C01-qa-ask-question://';
+        this.promotion_tap_in_card = 'C01-promotion-tap-in-card://';
+        
     }
 }
 
 class ElementController {
     constructor() {
         //問答客服系統
-        this.STARTTALKINGBTN = 'start-talking-btn';
-        this.CLEARTALKINGBTN = 'clear-talking-btn';
-        this.ASKBTN = 'ask-btn';
-        this.QUESTIONBOX = 'question-box';
-        this.AUDIOLOADINGICON = 'audio-loading-icon';
-        this.USERSPEAKLAYOUT = 'user-speak-layout';
-        this.USERSPEAK = 'user-speak';
-        this.C01SPEAKLAYOUT = 'c01-speak-layout';
-        this.C01SPEAK = 'c01-speak';
+        this.QASTARTTALKINGBTN = 'qa-start-talking-btn';
+        this.QACLEARTALKINGBTN = 'qa-clear-talking-btn';
+        this.QAASKBTN = 'qa-ask-btn';
+        this.QAQUESTIONBOX = 'qa-question-box';
+        this.QAAUDIOLOADINGICON = 'qa-audio-loading-icon';
+        this.QAUSERSPEAKLAYOUT = 'qa-user-speak-layout';
+        this.QAUSERSPEAK = 'qa-user-speak';
+        this.QAC01SPEAKLAYOUT = 'qa-c01-speak-layout';
+        this.QAC01SPEAK = 'qa-c01-speak';
         this.QAPROGRESBAR = 'qa-progress-bar';
-        this.RETALKINGBTN = 'retalking-btn';
+        this.QARETALKINGBTN = 'qa-retalking-btn';
 
         //推廣尋書系統
-        this.INSTRUMNETSLIDESHOW = 'instrument-slideshow-';
-        this.INSTRUMNETDOT = 'instrument-slideshow-dot-';
+        this.PROMOTIONINSTRUMNETSLIDESHOW = 'promotion-instrument-slideshow-';
+        this.PROMOTIONINSTRUMNETDOT = 'promotion-instrument-slideshow-dot-';
         this.PROMOTIONPAGE1 = 'promotion-page1';
         this.PROMOTIONPAGE2 = 'promotion-page2';
         this.PROMOTIONPAGEPROGRESSBAR = 'promotion-progress-bar';
         this.PROMOTIONPAGE3 = 'promotion-page3';
-
-        this.INDEPENDENTPAGE = 'show-recommendation-info';
-        this.INDEPENDENTPAGEDISPLAY1 = 'display-1';
-        this.INDEPENDENTPAGEDISPLAY2 = 'display-2';
-        this.INDEPENDENTPAGEDISPLAY3 = 'display-3';
-        this.INDEPENDENTPAGERELOADER = 'list-reloader';
-        this.INDEPENDENTPAGEALLREADYLOADER = 'all-ready-list-reloader'
-        this.COMMONREFRESH = 'refresh-alert';
+        this.PROMOTIONSHOWLIST = 'promotion-show-list';
+        this.PROMOTIONDISPLAY1 = 'promotion-display-1';
+        this.PROMOTIONDISPLAY2 = 'promotion-display-2';
+        this.PROMOTIONDISPLAY3 = 'promotion-display-3';
+        this.PROMOTIONRELOADER = 'promotion-list-reloader';
+        this.PROMOTIONALLREADYLOADER = 'promotion-all-ready-reloader'
     }
 }
 
@@ -522,15 +524,15 @@ class AnswerMaker {
         this.static_file = new StaticFileLoader();
     }
 
-    connect_QA_system() {
+    qa_ask_question() {
         this.audio.download_audio_text();
-        window.location.href = this.local_program.qa_system;
+        window.location.href = this.local_program.qa_ask_question;
         this.show_dialogue();
 
         //鎖住所有按鈕
-        this.ui.set_btn_disabled(this.elements.CLEARTALKINGBTN);
-        this.ui.set_btn_disabled(this.elements.STARTTALKINGBTN);
-        this.ui.set_btn_disabled(this.elements.ASKBTN);
+        this.ui.set_btn_disabled(this.elements.QACLEARTALKINGBTN);
+        this.ui.set_btn_disabled(this.elements.QASTARTTALKINGBTN);
+        this.ui.set_btn_disabled(this.elements.QAASKBTN);
     }
 
     show_dialogue() {
@@ -569,12 +571,12 @@ class AnswerMaker {
     show_user_dialogue() {
         return new Promise((resolve, reject) => {
             window.setTimeout(() => {
-                let user_question = document.getElementById(this.elements.QUESTIONBOX).value;
+                let user_question = document.getElementById(this.elements.QAQUESTIONBOX).value;
                 if (user_question != '') {
-                    $('#' + this.elements.USERSPEAK).text(user_question);
+                    $('#' + this.elements.QAUSERSPEAK).text(user_question);
                 }
-                $('#' + this.elements.USERSPEAKLAYOUT).transition('fade left');
-                this.ui.clear_input_box(this.elements.QUESTIONBOX);
+                $('#' + this.elements.QAUSERSPEAKLAYOUT).transition('fade left');
+                this.ui.clear_input_box(this.elements.QAQUESTIONBOX);
                 resolve('show_user_dialogue');
             }, 500);
         });
@@ -585,8 +587,8 @@ class AnswerMaker {
         return new Promise((resolve, reject) => {
             window.setTimeout(() => {
                 let c01_anwser = get_audio_anwser()['word'];
-                $('#' + this.elements.C01SPEAK).html(c01_anwser);
-                $('#' + this.elements.C01SPEAKLAYOUT).transition('fade right');
+                $('#' + this.elements.QAC01SPEAK).html(c01_anwser);
+                $('#' + this.elements.QAC01SPEAKLAYOUT).transition('fade right');
                 resolve('show_c01_dialogue');
             }, 2000);
         });
@@ -596,26 +598,26 @@ class AnswerMaker {
     show_retalking_btn() {
         return new Promise((resolve, reject) => {
             window.setTimeout(() => {
-                $('#' + this.elements.RETALKINGBTN).transition('fade up');
+                $('#' + this.elements.QARETALKINGBTN).transition('fade up');
                 resolve('show_retalking_btn');
             }, 3200);
         });
     }
 
     clear_dialogue() {
-        this.ui.clear_input_box(this.elements.QUESTIONBOX);
+        this.ui.clear_input_box(this.elements.QAQUESTIONBOX);
     }
 
     reset_dialogue() {
         //開啟所有按鈕
-        this.ui.set_btn_abled(this.elements.CLEARTALKINGBTN);
-        this.ui.set_btn_abled(this.elements.STARTTALKINGBTN);
-        this.ui.set_btn_abled(this.elements.ASKBTN);
+        this.ui.set_btn_abled(this.elements.QACLEARTALKINGBTN);
+        this.ui.set_btn_abled(this.elements.QASTARTTALKINGBTN);
+        this.ui.set_btn_abled(this.elements.QAASKBTN);
 
         //隱藏對話框
-        $('#' + this.elements.RETALKINGBTN).transition('fade up');
-        $('#' + this.elements.USERSPEAKLAYOUT).transition('fade left');
-        $('#' + this.elements.C01SPEAKLAYOUT).transition('fade right');
+        $('#' + this.elements.QARETALKINGBTN).transition('fade up');
+        $('#' + this.elements.QAUSERSPEAKLAYOUT).transition('fade left');
+        $('#' + this.elements.QAC01SPEAKLAYOUT).transition('fade right');
     }
 }
 
@@ -637,22 +639,22 @@ class AudioRecognizer {
 
     //儲存語音辨識的結果文字
     download_audio_text() {
-        let audio_text = document.getElementById(this.elements.QUESTIONBOX).value;
+        let audio_text = document.getElementById(this.elements.QAQUESTIONBOX).value;
         let file = new File([audio_text], "audio_text.txt", { type: "text/plain;charset=utf-8" });
         saveAs(file);
     }
 
     //語音轉文字
     speech_to_text() {
-        this.ui.set_btn_disabled(this.elements.STARTTALKINGBTN);
-        this.ui.set_btn_disabled(this.elements.ASKBTN);
-        this.ui.clear_input_box(this.elements.QUESTIONBOX);
-        this.ui.show_elemet_display(this.elements.AUDIOLOADINGICON);
+        this.ui.set_btn_disabled(this.elements.QASTARTTALKINGBTN);
+        this.ui.set_btn_disabled(this.elements.QAASKBTN);
+        this.ui.clear_input_box(this.elements.QAQUESTIONBOX);
+        this.ui.show_elemet_display(this.elements.QAAUDIOLOADINGICON);
 
         //隱藏對話框
-        $('#' + this.elements.RETALKINGBTN).transition('hide');
-        $('#' + this.elements.USERSPEAKLAYOUT).transition('hide');
-        $('#' + this.elements.C01SPEAKLAYOUT).transition('hide');
+        $('#' + this.elements.QARETALKINGBTN).transition('hide');
+        $('#' + this.elements.QAUSERSPEAKLAYOUT).transition('hide');
+        $('#' + this.elements.QAC01SPEAKLAYOUT).transition('hide');
 
         //進行語音辨識
         if (this.speech_recognition) {
@@ -666,7 +668,7 @@ class AudioRecognizer {
     process_audio(event) {
         let elements = new ElementController();
         let ui = new UIRender();
-        let resultContainer = document.getElementById(elements.QUESTIONBOX);
+        let resultContainer = document.getElementById(elements.QAQUESTIONBOX);
         let resultList = event.results;
 
         for (let i = 0; i < resultList.length; i++) {
@@ -682,9 +684,9 @@ class AudioRecognizer {
             }
             if (result.isFinal) {
                 console.log('result.isFinal =', result.isFinal);
-                ui.set_btn_abled(elements.STARTTALKINGBTN);
-                ui.set_btn_abled(elements.ASKBTN);
-                ui.hide_elemet_display(elements.AUDIOLOADINGICON);
+                ui.set_btn_abled(elements.QASTARTTALKINGBTN);
+                ui.set_btn_abled(elements.QAASKBTN);
+                ui.hide_elemet_display(elements.QAAUDIOLOADINGICON);
                 this.stop();
                 break;
             }

@@ -5,6 +5,7 @@ import json
 import time
 import datetime
 import os
+import logging
 import math
 import base64
 from requests.api import post
@@ -15,19 +16,23 @@ from abc import abstractmethod, ABCMeta
 from typing import List, Dict
 from enum import Enum, auto
 import time
+import traceback
 import sys
 import cv2
 import numpy
 from PIL import Image, ImageDraw, ImageFont
 import shutil
 
-
-@dataclass
 class DirController:
-    # 定義該程式所需要用到的檔案及路徑
-    current_dir: str = '/'.join(os.path.abspath(__file__).split('\\')[:-1])
-    c01_config_file: str = current_dir + '/' + 'C01_config.xml'
-
+    def __init__(self):
+        self.current_os: str = sys.platform
+        self.separation: str = self.get_separation()
+        self.current_dir: str = '/'.join(os.path.abspath(__file__).split(self.separation)[:-1])
+        self.config_file: str = self.current_dir + '/' + 'C01_config.xml'
+        self.log_file: str = self.current_dir + '/log/error.log'
+    
+    def get_separation(self):
+        return '\\' if self.current_os == 'win32' else '/'
 
 class EventListener:
     def __init__(self) -> None:
@@ -55,7 +60,7 @@ class XMLParser:
 
     # 從指定xml檔案中讀取內容
     def load_xml_file(self) -> None:
-        self.root = ET.parse(DirController().c01_config_file).getroot()
+        self.root = ET.parse(DirController().config_file).getroot()
 
 
 class RobotConfig:
@@ -277,7 +282,7 @@ class RobotCamara:
         return x, y
 
 
-class RobotFunctionality:
+class RobotFunctions:
     def __init__(self) -> None:
         self.config = RobotConfig()
         self.web_handler = WebTransferHandler()
@@ -551,14 +556,14 @@ class LocalFileBuilder:
 
 class RobotService:
     def __init__(self) -> None:
-        self.robot_function = RobotFunctionality()
+        self.robot_functions = RobotFunctions()
         self.file_builder = LocalFileBuilder()
         self.config = RobotConfig()
         self.text_processer = TextProcesser()
 
     # 識別讀者
     def identify_reader(self) -> str:
-        card_internal_code = self.robot_function.read_nfc_card()
+        card_internal_code = self.robot_functions.read_nfc_card()
 
         # 快取機制
         cache_file = self.config.get_account_cache_dir()
@@ -569,12 +574,12 @@ class RobotService:
             alma_account = account_cache.get(card_internal_code)
 
             if(alma_account == None):
-                alma_account = self.robot_function.search_alma_account(
+                alma_account = self.robot_functions.search_alma_account(
                     card_internal_code)
         else:
             self.file_builder.delete_existing_file(cache_file)
             self.file_builder.create_file_if_existing(cache_file, '{}')
-            alma_account = self.robot_function.search_alma_account(
+            alma_account = self.robot_functions.search_alma_account(
                 card_internal_code)
         self.file_builder.add_account_to_cache(
             cache_file, card_internal_code, alma_account)
@@ -603,10 +608,10 @@ class RobotService:
         if(len(file_list) != 0):
             self.file_builder.delete_existing_file(
                 f'{lib_dir}/{pic_dir}/{file_list[0]}')
-        self.robot_function.camara.activate_shooting_window()
+        self.robot_functions.camara.activate_shooting_window()
 
         # 將情緒辨識後的內容進行重組
-        api_result = self.robot_function.recognize_emotion(account)
+        api_result = self.robot_functions.recognize_emotion(account)
         content = {}
         content['emotion'] = api_result['emotion_tag']
         content['img_dir'] = api_result['usr_face_recogni_pic']
@@ -632,7 +637,8 @@ class RobotService:
         print(f'cmd = {cmd}')
         os.system(cmd)
 
-    def consult_question(self) -> None:
+    # 進行QA問答
+    def C01_qa_ask_question(self) -> None:
         # 將語音辨識後的文字檔案移動至指定目錄
         from_dir = self.config.get_audio_text_from_dir()
         to_dir = self.config.get_audio_text_to_dir()
@@ -649,7 +655,7 @@ class RobotService:
             question = f.readline()
 
         # 呼叫問答系統的API，取得該問題的答案
-        answer = self.robot_function.call_qa_system(question)
+        answer = self.robot_functions.call_qa_system(question)
         word = "<br>".join(answer)
 
         # 若有超連結，將其組成<a></a>格式
@@ -667,9 +673,14 @@ class RobotService:
         # 機器人反應
         time.sleep(5)
         # answer = answer[len(answer)-1]
-        # self.robot_function.speak_text(answer)
-        # self.robot_function.change_face(RobotFace.EXCITED)
-        # self.robot_function.change_arm_movement(RobotArm.LOOKFOR)
+        # self.robot_functions.speak_text(answer)
+        # self.robot_functions.change_face(RobotFace.EXCITED)
+        # self.robot_functions.change_arm_movement(RobotArm.LOOKFOR)
+        
+    # 進行卡片讀取
+    def C01_promotion_tap_in_card(self):
+        alma_account = self.identify_reader()
+        self.record_user_login_info(alma_account)
         
 class TextProcesser():
     def find_char_position_in_string(self, string: str, char: str) -> List[int]:
@@ -706,30 +717,57 @@ class TextProcesser():
             string = string.replace(key, value)
         return string
 
+class TimeHandler():
+    def __init__(self) -> None:
+        pass
 
-def qa_system() -> None:
-    robot_service = RobotService()
-    robot_service.consult_question()
+    def get_now(self) -> str:
+        return str(datetime.date.today())
+    
+    # 比較兩個日期早晚
+    def compare_two_date(self, date1: str, date2: str) -> bool:
+        formatted_date1 = time.strptime(date1, "%Y-%m-%d")
+        formatted_date2 = time.strptime(date2, "%Y-%m-%d")
+        return True if formatted_date1 > formatted_date2 else False
 
-def promote_search_system() -> None:
-    robot_service = RobotService()
-    alma_account = robot_service.identify_reader()
-    robot_service.record_user_login_info(alma_account)
-    robot_service.take_user_photo(alma_account)
-    robot_service.show_user_interface()
+    def get_time(self) -> float:
+        return time.time()
 
-    RobotFunctionality().change_face(RobotFace.ANGRY)
-    RobotFunctionality().change_arm_movement(RobotArm.HI_1)
-
-@dataclass
-class C01Application:
-    QASYSTEM: str = 'C01-run-qa-system'
-    PROMOTIONSYSTEM: str = "C01-run-promotion-system"
-
+class SystemMonitor():
+    def __init__(self) -> None:
+        self.time_handler = TimeHandler()  
+        self.dirs = DirController()
+    
+    def get_message_of_excu_time(self, start_time: float) -> str:
+        message = f"executing {round(self.time_handler.get_time() - start_time, 2)} seconds"
+        return message
+    
+    def log_event(self, message: str) -> None:
+        app_logger = logging.getLogger()
+        file_handler = logging.FileHandler(filename = self.dirs.log_file , mode = 'a', encoding = "utf-8")
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        app_logger.addHandler(file_handler)
+        logging.error(message)
+    
 if __name__ == "__main__":
-    application = sys.argv[1]
-    if(application == C01Application.QASYSTEM):
-        qa_system()
-    elif(application == C01Application.PROMOTIONSYSTEM):
-        promote_search_system()
-    print('done')
+    try:
+        file_builder = LocalFileBuilder()
+        robot_services = RobotService()
+        
+        application = sys.argv[1]
+        if(application == 'C01-qa-ask-question'):
+            robot_services.C01_qa_ask_question()            
+        elif(application == 'C01-promotion-tap-in-card'):
+            robot_services.C01_promotion_tap_in_card()        
+    except Exception as e:
+        error_class = e.__class__.__name__
+        detail = e.args[0]
+        cl, exc, tb = sys.exc_info()
+        last_call_stack = traceback.extract_tb(tb)[-1]
+        file_name = last_call_stack[0]
+        line_number = last_call_stack[1]
+        function_name = last_call_stack[2]
+        error_message = "File \"{}\", line {}, in {}: [{}] {}".format(file_name, line_number, function_name, error_class, detail)
+        monitor = SystemMonitor()
+        monitor.log_event(error_message)
