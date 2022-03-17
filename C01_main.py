@@ -683,6 +683,10 @@ class RobotService:
         self.record_user_login_info(alma_account)
         
 class TextProcesser():
+    def __init__(self) -> None:
+        self.start_tag = '<a>'
+        self.end_tag = '</a>'
+
     def find_char_position_in_string(self, string: str, char: str) -> List[int]:
         position = []
         n = 0
@@ -692,12 +696,10 @@ class TextProcesser():
                 position.append(n)
         return position
 
-    def add_a_tag_to_string(self, string: str):
-        start_tag = '<a>'
-        end_tag = '</a>'
+    def add_a_tag_to_string(self, string: str) -> str:
         start_tag_position = self.find_char_position_in_string(
-            string, start_tag)
-        end_tag_position = self.find_char_position_in_string(string, end_tag)
+            string, self.start_tag)
+        end_tag_position = self.find_char_position_in_string(string, self.end_tag)
         tag_num = len(start_tag_position)
         replace_ele = {}
         if(tag_num != len(end_tag_position)):
@@ -705,12 +707,12 @@ class TextProcesser():
         else:
             for i in range(0, tag_num):
                 sub_string = string[start_tag_position[i] +
-                                    len(start_tag):end_tag_position[i] - 1]
+                                    len(self.start_tag):end_tag_position[i] - 1]
                 sub_string_list = sub_string.split('(')
                 link_word = sub_string_list[0]
                 link_url = sub_string_list[1]
-                replace_ele[f'{start_tag + sub_string}' + ')' +
-                            f'{end_tag}'] = f'<a href="{link_url}">{link_word}</a>'
+                replace_ele[f'{self.start_tag + sub_string}' + ')' +
+                            f'{self.end_tag}'] = f'<a href="{link_url}">{link_word}</a>'
 
         for key in replace_ele:
             value = replace_ele[key]

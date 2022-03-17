@@ -22,7 +22,7 @@
             <file_name>audio-anwser-result.js</file_name>
         </audio_anwser_js>
         <audio_text>
-            <from_dir>C:\Users\user\Downloads</from_dir>
+            <from_dir>C:\Users\Admin\Downloads</from_dir>
             <to_dir>audio-recognition</to_dir>
         </audio_text>
         <account_cache>
