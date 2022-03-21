@@ -624,7 +624,6 @@ class AnswerMaker {
 class AudioRecognizer {
     constructor() {
         this.speech_recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        this.speech_recognition.lang = 'cmn-Hant-TW';
         this.elements = new ElementController();
         this.ui = new UIRender();
     }
@@ -635,6 +634,7 @@ class AudioRecognizer {
         this.speech_recognition.status = true
         this.speech_recognition.continuous = true;
         this.speech_recognition.interimResults = true;
+        this.speech_recognition.lang = 'cmn-Hant-TW';
     };
 
     //儲存語音辨識的結果文字
@@ -673,7 +673,7 @@ class AudioRecognizer {
 
         for (let i = 0; i < resultList.length; i++) {
             let result = resultList.item(i);
-            //console.log('result[0].transcript', result[0].transcript);
+            console.log('result[0].transcript', result[0].transcript);
 
             try {
                 let alternative = result.item(0);

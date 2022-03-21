@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="C01_main.css">
 </head>
 
-<body>
+<body style="overflow-y: hidden;">
     <!-- 最上方的tab menu -->
     <div class="ui top attached inverted three item pointing menu">
         <a class="item" data-tab="first">
@@ -142,7 +142,7 @@
                     onclick="new InstrumentSlideshow().next_pic();"></i>
 
                 <!-- 三個點點 -->
-                <div class="ui center aligned container" style="z-index:2; bottom:17%; position:fixed;">
+                <div class="ui center aligned container" style="z-index:2; left:9%; bottom:17%; position:fixed;">
                     <i id="promotion-instrument-slideshow-dot-1" class="circle link icon"
                         onclick="new InstrumentSlideshow().click_dot(1);"></i>
                     <i id="promotion-instrument-slideshow-dot-2" class="circle outline link icon"
@@ -152,11 +152,11 @@
                 </div>
 
                 <!-- 教學文字幻燈片 -->
-                <img id="promotion-instrument-slideshow-1" class="ui massive rounded image"
+                <img id="promotion-instrument-slideshow-1" class="ui massive centered rounded image"
                     src="lib\instrument\pic\put_the_card.png">
-                <img id="promotion-instrument-slideshow-2" class="ui massive rounded image hidden"
+                <img id="promotion-instrument-slideshow-2" class="ui massive centered rounded image hidden"
                     src="lib\instrument\pic\click_the_button.png">
-                <img id="promotion-instrument-slideshow-3" class="ui massive rounded image hidden"
+                <img id="promotion-instrument-slideshow-3" class="ui massive centered rounded image hidden"
                     src="lib\instrument\pic\take_a_picture.png">
             </div>
 
